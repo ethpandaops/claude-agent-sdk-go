@@ -1,0 +1,29 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(go build ./...)",
+      "Bash(go test ./...)",
+      "Bash(go test -race ./...)",
+      "Bash(golangci-lint run ./...)",
+      "Bash(golangci-lint run --new-from-rev=*)",
+      "Bash(go vet:*)",
+      "Bash(go tool cover:*)",
+      "Bash(go mod:*)",
+      "Bash(go generate:*)"
+    ],
+    "deny": []
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "gofmt -w $CLAUDE_FILE_PATHS"
+          }
+        ],
+        "matcher": "Edit|Write|MultiEdit"
+      }
+    ]
+  }
+}
