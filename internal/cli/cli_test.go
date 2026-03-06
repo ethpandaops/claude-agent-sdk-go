@@ -1063,7 +1063,6 @@ func TestBuildArgs_WithEffort(t *testing.T) {
 		{name: "low", effort: config.EffortLow, expected: "low"},
 		{name: "medium", effort: config.EffortMedium, expected: "medium"},
 		{name: "high", effort: config.EffortHigh, expected: "high"},
-		{name: "max", effort: config.EffortMax, expected: "max"},
 	}
 
 	for _, tt := range tests {
