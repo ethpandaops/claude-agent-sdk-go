@@ -95,6 +95,21 @@ func (c *clientWrapper) GetMCPStatus(ctx context.Context) (*MCPStatus, error) {
 	return c.impl.GetMCPStatus(ctx)
 }
 
+// ReconnectMCPServer reconnects a disconnected or failed MCP server.
+func (c *clientWrapper) ReconnectMCPServer(ctx context.Context, serverName string) error {
+	return c.impl.ReconnectMCPServer(ctx, serverName)
+}
+
+// ToggleMCPServer enables or disables an MCP server.
+func (c *clientWrapper) ToggleMCPServer(ctx context.Context, serverName string, enabled bool) error {
+	return c.impl.ToggleMCPServer(ctx, serverName, enabled)
+}
+
+// StopTask stops a running task by task ID.
+func (c *clientWrapper) StopTask(ctx context.Context, taskID string) error {
+	return c.impl.StopTask(ctx, taskID)
+}
+
 // RewindFiles rewinds tracked files to their state at a specific user message.
 func (c *clientWrapper) RewindFiles(ctx context.Context, userMessageID string) error {
 	return c.impl.RewindFiles(ctx, userMessageID)

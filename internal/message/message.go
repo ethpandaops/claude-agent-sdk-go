@@ -13,6 +13,9 @@ var (
 	_ Message = (*UserMessage)(nil)
 	_ Message = (*AssistantMessage)(nil)
 	_ Message = (*SystemMessage)(nil)
+	_ Message = (*TaskStartedMessage)(nil)
+	_ Message = (*TaskProgressMessage)(nil)
+	_ Message = (*TaskNotificationMessage)(nil)
 	_ Message = (*ResultMessage)(nil)
 	_ Message = (*StreamEvent)(nil)
 )
@@ -163,6 +166,69 @@ type SystemMessage struct {
 // MessageType implements the Message interface.
 func (m *SystemMessage) MessageType() string { return "system" }
 
+// TaskUsage contains task usage statistics from task progress events.
+//
+//nolint:tagliatelle // Claude CLI uses snake_case
+type TaskUsage struct {
+	TotalTokens int `json:"total_tokens"`
+	ToolUses    int `json:"tool_uses"`
+	DurationMs  int `json:"duration_ms"`
+}
+
+// TaskNotificationStatus represents the final status of a task.
+type TaskNotificationStatus string
+
+const (
+	// TaskNotificationStatusCompleted indicates the task finished successfully.
+	TaskNotificationStatusCompleted TaskNotificationStatus = "completed"
+	// TaskNotificationStatusFailed indicates the task failed.
+	TaskNotificationStatusFailed TaskNotificationStatus = "failed"
+	// TaskNotificationStatusStopped indicates the task was stopped by control request.
+	TaskNotificationStatusStopped TaskNotificationStatus = "stopped"
+)
+
+// TaskStartedMessage is emitted when a task starts.
+//
+//nolint:tagliatelle // Claude CLI uses snake_case
+type TaskStartedMessage struct {
+	SystemMessage
+	TaskID      string  `json:"task_id"`
+	Description string  `json:"description"`
+	UUID        string  `json:"uuid"`
+	SessionID   string  `json:"session_id"`
+	ToolUseID   *string `json:"tool_use_id,omitempty"`
+	TaskType    *string `json:"task_type,omitempty"`
+}
+
+// TaskProgressMessage is emitted while a task is in progress.
+//
+//nolint:tagliatelle // Claude CLI uses snake_case
+type TaskProgressMessage struct {
+	SystemMessage
+	TaskID       string    `json:"task_id"`
+	Description  string    `json:"description"`
+	Usage        TaskUsage `json:"usage"`
+	UUID         string    `json:"uuid"`
+	SessionID    string    `json:"session_id"`
+	ToolUseID    *string   `json:"tool_use_id,omitempty"`
+	LastToolName *string   `json:"last_tool_name,omitempty"`
+}
+
+// TaskNotificationMessage is emitted when a task completes, fails, or is stopped.
+//
+//nolint:tagliatelle // Claude CLI uses snake_case
+type TaskNotificationMessage struct {
+	SystemMessage
+	TaskID     string                 `json:"task_id"`
+	Status     TaskNotificationStatus `json:"status"`
+	OutputFile string                 `json:"output_file"`
+	Summary    string                 `json:"summary"`
+	UUID       string                 `json:"uuid"`
+	SessionID  string                 `json:"session_id"`
+	ToolUseID  *string                `json:"tool_use_id,omitempty"`
+	Usage      *TaskUsage             `json:"usage,omitempty"`
+}
+
 // ResultMessage represents the final result of a query.
 //
 //nolint:tagliatelle // Claude CLI uses snake_case
@@ -174,6 +240,7 @@ type ResultMessage struct {
 	IsError          bool     `json:"is_error"`
 	NumTurns         int      `json:"num_turns"`
 	SessionID        string   `json:"session_id"`
+	StopReason       *string  `json:"stop_reason,omitempty"`
 	TotalCostUSD     *float64 `json:"total_cost_usd,omitempty"`
 	Usage            *Usage   `json:"usage,omitempty"`
 	Result           *string  `json:"result,omitempty"`

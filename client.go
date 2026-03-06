@@ -107,6 +107,15 @@ type Client interface {
 	// Returns the status of all configured MCP servers.
 	GetMCPStatus(ctx context.Context) (*MCPStatus, error)
 
+	// ReconnectMCPServer reconnects a disconnected or failed MCP server.
+	ReconnectMCPServer(ctx context.Context, serverName string) error
+
+	// ToggleMCPServer enables or disables an MCP server.
+	ToggleMCPServer(ctx context.Context, serverName string, enabled bool) error
+
+	// StopTask stops a running task by task ID.
+	StopTask(ctx context.Context, taskID string) error
+
 	// RewindFiles rewinds tracked files to their state at a specific user message.
 	// The userMessageID should be the ID of a previous user message in the conversation.
 	// Requires EnableFileCheckpointing=true in ClaudeAgentOptions.

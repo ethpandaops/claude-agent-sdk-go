@@ -22,6 +22,7 @@ type mockTransport struct {
 	closed   bool
 	messages chan map[string]any
 	errors   chan error
+	sent     []map[string]any
 }
 
 func newMockTransport() *mockTransport {
@@ -54,40 +55,43 @@ func (m *mockTransport) SendMessage(_ context.Context, data []byte) error {
 		return nil
 	}
 
-	// Auto-respond to control_request for initialize
+	m.sent = append(m.sent, msg)
+
+	// Auto-respond to control_request messages.
 	if msgType, _ := msg["type"].(string); msgType == "control_request" {
 		requestID, _ := msg["request_id"].(string)
 
 		request, _ := msg["request"].(map[string]any)
 		subtype, _ := request["subtype"].(string)
 
-		if subtype == "initialize" {
-			// Send the response asynchronously to avoid deadlock
-			go func() {
-				m.mu.Lock()
-				defer m.mu.Unlock()
+		go func(subtype string) {
+			m.mu.Lock()
+			defer m.mu.Unlock()
 
-				if m.closed {
-					return
-				}
+			if m.closed {
+				return
+			}
 
-				// Send success response with proper nested format
-				m.messages <- map[string]any{
-					"type": "control_response",
-					"response": map[string]any{
-						"request_id": requestID,
-						"subtype":    "success",
-						"result": map[string]any{
-							"protocol_version": "1.0",
-							"server_info": map[string]any{
-								"name":    "test-server",
-								"version": "1.0.0",
-							},
-						},
+			payload := map[string]any{}
+			if subtype == "initialize" {
+				payload = map[string]any{
+					"protocol_version": "1.0",
+					"server_info": map[string]any{
+						"name":    "test-server",
+						"version": "1.0.0",
 					},
 				}
-			}()
-		}
+			}
+
+			m.messages <- map[string]any{
+				"type": "control_response",
+				"response": map[string]any{
+					"request_id": requestID,
+					"subtype":    "success",
+					"response":   payload,
+				},
+			}
+		}(subtype)
 	}
 
 	return nil
@@ -221,6 +225,47 @@ func TestClient_StartWithOnUserInputAndPermissionPromptToolNameReturnsError(t *t
 	})
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "on_user_input callback cannot be used with permission_prompt_tool_name")
+}
+
+func TestClientMCPControlRequests(t *testing.T) {
+	transport := newMockTransport()
+	client := New()
+
+	err := client.Start(context.Background(), &config.Options{Transport: transport})
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		require.NoError(t, client.Close())
+	})
+
+	require.NoError(t, client.ReconnectMCPServer(context.Background(), "my-server"))
+	require.NoError(t, client.ToggleMCPServer(context.Background(), "my-server", false))
+	require.NoError(t, client.StopTask(context.Background(), "task-123"))
+
+	transport.mu.Lock()
+	defer transport.mu.Unlock()
+
+	require.Len(t, transport.sent, 4)
+
+	var subtypes []string
+
+	for _, sent := range transport.sent {
+		if sent["type"] != "control_request" {
+			continue
+		}
+
+		request, _ := sent["request"].(map[string]any)
+		subtype, _ := request["subtype"].(string)
+		subtypes = append(subtypes, subtype)
+	}
+
+	require.Contains(t, subtypes, "initialize")
+	require.Contains(t, subtypes, "mcp_reconnect")
+	require.Contains(t, subtypes, "mcp_toggle")
+	require.Contains(t, subtypes, "stop_task")
+
+	last := transport.sent[len(transport.sent)-1]
+	request, _ := last["request"].(map[string]any)
+	require.Equal(t, "task-123", request["task_id"])
 }
 
 // TestClient_DoneChannelStopsReadLoop verifies that the c.done channel

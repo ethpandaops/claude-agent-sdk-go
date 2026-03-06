@@ -209,6 +209,13 @@ func (s *Session) GetSDKMCPServerNames() []string {
 	return names
 }
 
+// GetSDKMCPServer returns a registered SDK MCP server by name.
+func (s *Session) GetSDKMCPServer(name string) (mcp.ServerInstance, bool) {
+	server, ok := s.sdkMcpServers[name]
+
+	return server, ok
+}
+
 // HandleHookCallback handles hook_callback control requests from the CLI.
 // The CLI sends callback_id which we use to look up the registered callback.
 func (s *Session) HandleHookCallback(
@@ -286,6 +293,16 @@ func (s *Session) parseHookInput(inputData map[string]any) (hook.Input, error) {
 		PermissionMode: permissionMode,
 	}
 
+	var agentID *string
+	if v, ok := inputData["agent_id"].(string); ok {
+		agentID = &v
+	}
+
+	var agentType *string
+	if v, ok := inputData["agent_type"].(string); ok {
+		agentType = &v
+	}
+
 	switch hookEventName {
 	case string(hook.EventPreToolUse):
 		toolName, _ := inputData["tool_name"].(string)
@@ -298,6 +315,8 @@ func (s *Session) parseHookInput(inputData map[string]any) (hook.Input, error) {
 			ToolName:      toolName,
 			ToolInput:     toolInput,
 			ToolUseID:     toolUseID,
+			AgentID:       agentID,
+			AgentType:     agentType,
 		}, nil
 
 	case string(hook.EventPostToolUse):
@@ -313,6 +332,8 @@ func (s *Session) parseHookInput(inputData map[string]any) (hook.Input, error) {
 			ToolInput:     toolInput,
 			ToolUseID:     toolUseID,
 			ToolResponse:  toolResponse,
+			AgentID:       agentID,
+			AgentType:     agentType,
 		}, nil
 
 	case string(hook.EventUserPromptSubmit):
@@ -382,6 +403,8 @@ func (s *Session) parseHookInput(inputData map[string]any) (hook.Input, error) {
 			ToolUseID:     toolUseID,
 			Error:         toolError,
 			IsInterrupt:   isInterrupt,
+			AgentID:       agentID,
+			AgentType:     agentType,
 		}, nil
 
 	case string(hook.EventNotification):
@@ -427,6 +450,8 @@ func (s *Session) parseHookInput(inputData map[string]any) (hook.Input, error) {
 			ToolName:              toolName,
 			ToolInput:             toolInput,
 			PermissionSuggestions: permissionSuggestions,
+			AgentID:               agentID,
+			AgentType:             agentType,
 		}, nil
 
 	default:

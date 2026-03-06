@@ -619,6 +619,17 @@ func TestClient_GetMCPStatusNotConnected(t *testing.T) {
 	require.Contains(t, err.Error(), "not connected")
 }
 
+func TestClient_MCPControlsNotConnected(t *testing.T) {
+	client := NewClient()
+	defer client.Close()
+
+	ctx := context.Background()
+
+	require.Error(t, client.ReconnectMCPServer(ctx, "server"))
+	require.Error(t, client.ToggleMCPServer(ctx, "server", true))
+	require.Error(t, client.StopTask(ctx, "task-1"))
+}
+
 // TestClient_RewindFilesNotConnected tests RewindFiles when not connected.
 func TestClient_RewindFilesNotConnected(t *testing.T) {
 	client := NewClient()

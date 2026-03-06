@@ -179,12 +179,11 @@ func findSessionPath(
 		}
 	}
 
-	// Final fallback for stale/missing index.
-	fallbackPath := filepath.Join(projectDir, sessionID+".jsonl")
-	if _, err := os.Stat(fallbackPath); err == nil {
+	// Final fallback for stale/missing index, reusing the session discovery logic
+	// so long-path bucket hashing and worktree layouts resolve consistently.
+	store := newSessionStore(filepath.Dir(projectsDir))
+	if fallbackPath := store.findSessionFilePath(sessionID, projectPath); fallbackPath != "" {
 		return fallbackPath, nil, nil
-	} else if !errors.Is(err, os.ErrNotExist) {
-		return "", nil, fmt.Errorf("check session file: %w", err)
 	}
 
 	return "", nil, ErrSessionNotFound
@@ -233,20 +232,7 @@ func findInIndex(
 }
 
 func projectBucketName(projectPath string) string {
-	path := filepath.ToSlash(strings.TrimSpace(projectPath))
-	path = strings.TrimPrefix(path, "/")
-	path = strings.ReplaceAll(path, ":", "-")
-	path = strings.ReplaceAll(path, "/", "-")
-
-	if path == "" {
-		return "-"
-	}
-
-	if strings.HasPrefix(path, "-") {
-		return path
-	}
-
-	return "-" + path
+	return sanitizeProjectPath(filepath.ToSlash(strings.TrimSpace(projectPath)))
 }
 
 func applyIndexMetadata(stat *SessionStat, entry *sessionsIndexEntry) {

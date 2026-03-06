@@ -148,36 +148,217 @@ func parseAssistantMessage(data map[string]any) (*AssistantMessage, error) {
 	return msg, nil
 }
 
-// parseSystemMessage parses a SystemMessage from raw JSON.
-func parseSystemMessage(data map[string]any) (*SystemMessage, error) {
-	msg := &SystemMessage{
-		Type: "system",
+func systemMessageData(data map[string]any) map[string]any {
+	if msgData, ok := data["data"].(map[string]any); ok {
+		return msgData
 	}
 
+	msgData := make(map[string]any)
+
+	for k, v := range data {
+		if k != "type" && k != "subtype" {
+			msgData[k] = v
+		}
+	}
+
+	return msgData
+}
+
+func requiredStringField(data map[string]any, key string, scope string) (string, error) {
+	value, ok := data[key].(string)
+	if !ok {
+		return "", fmt.Errorf("%s: missing or invalid %q field", scope, key)
+	}
+
+	return value, nil
+}
+
+func parseTaskUsage(data any) (TaskUsage, error) {
+	usageJSON, err := json.Marshal(data)
+	if err != nil {
+		return TaskUsage{}, fmt.Errorf("system message: marshal usage: %w", err)
+	}
+
+	var usage TaskUsage
+	if err := json.Unmarshal(usageJSON, &usage); err != nil {
+		return TaskUsage{}, fmt.Errorf("system message: unmarshal usage: %w", err)
+	}
+
+	return usage, nil
+}
+
+func parseTaskStartedMessage(data map[string]any, system SystemMessage) (Message, error) {
+	taskID, err := requiredStringField(data, "task_id", "system message")
+	if err != nil {
+		return nil, err
+	}
+
+	description, err := requiredStringField(data, "description", "system message")
+	if err != nil {
+		return nil, err
+	}
+
+	uuid, err := requiredStringField(data, "uuid", "system message")
+	if err != nil {
+		return nil, err
+	}
+
+	sessionID, err := requiredStringField(data, "session_id", "system message")
+	if err != nil {
+		return nil, err
+	}
+
+	msg := &TaskStartedMessage{
+		SystemMessage: system,
+		TaskID:        taskID,
+		Description:   description,
+		UUID:          uuid,
+		SessionID:     sessionID,
+	}
+
+	if toolUseID, ok := data["tool_use_id"].(string); ok {
+		msg.ToolUseID = &toolUseID
+	}
+
+	if taskType, ok := data["task_type"].(string); ok {
+		msg.TaskType = &taskType
+	}
+
+	return msg, nil
+}
+
+func parseTaskProgressMessage(data map[string]any, system SystemMessage) (Message, error) {
+	taskID, err := requiredStringField(data, "task_id", "system message")
+	if err != nil {
+		return nil, err
+	}
+
+	description, err := requiredStringField(data, "description", "system message")
+	if err != nil {
+		return nil, err
+	}
+
+	usageRaw, ok := data["usage"]
+	if !ok {
+		return nil, fmt.Errorf("system message: missing %q field", "usage")
+	}
+
+	uuid, err := requiredStringField(data, "uuid", "system message")
+	if err != nil {
+		return nil, err
+	}
+
+	sessionID, err := requiredStringField(data, "session_id", "system message")
+	if err != nil {
+		return nil, err
+	}
+
+	usage, err := parseTaskUsage(usageRaw)
+	if err != nil {
+		return nil, err
+	}
+
+	msg := &TaskProgressMessage{
+		SystemMessage: system,
+		TaskID:        taskID,
+		Description:   description,
+		Usage:         usage,
+		UUID:          uuid,
+		SessionID:     sessionID,
+	}
+
+	if toolUseID, ok := data["tool_use_id"].(string); ok {
+		msg.ToolUseID = &toolUseID
+	}
+
+	if lastToolName, ok := data["last_tool_name"].(string); ok {
+		msg.LastToolName = &lastToolName
+	}
+
+	return msg, nil
+}
+
+func parseTaskNotificationMessage(data map[string]any, system SystemMessage) (Message, error) {
+	taskID, err := requiredStringField(data, "task_id", "system message")
+	if err != nil {
+		return nil, err
+	}
+
+	status, err := requiredStringField(data, "status", "system message")
+	if err != nil {
+		return nil, err
+	}
+
+	outputFile, err := requiredStringField(data, "output_file", "system message")
+	if err != nil {
+		return nil, err
+	}
+
+	summary, err := requiredStringField(data, "summary", "system message")
+	if err != nil {
+		return nil, err
+	}
+
+	uuid, err := requiredStringField(data, "uuid", "system message")
+	if err != nil {
+		return nil, err
+	}
+
+	sessionID, err := requiredStringField(data, "session_id", "system message")
+	if err != nil {
+		return nil, err
+	}
+
+	msg := &TaskNotificationMessage{
+		SystemMessage: system,
+		TaskID:        taskID,
+		Status:        TaskNotificationStatus(status),
+		OutputFile:    outputFile,
+		Summary:       summary,
+		UUID:          uuid,
+		SessionID:     sessionID,
+	}
+
+	if toolUseID, ok := data["tool_use_id"].(string); ok {
+		msg.ToolUseID = &toolUseID
+	}
+
+	if usageRaw, ok := data["usage"]; ok && usageRaw != nil {
+		usage, err := parseTaskUsage(usageRaw)
+		if err != nil {
+			return nil, err
+		}
+
+		msg.Usage = &usage
+	}
+
+	return msg, nil
+}
+
+// parseSystemMessage parses a SystemMessage from raw JSON.
+func parseSystemMessage(data map[string]any) (Message, error) {
 	// Validate required subtype field
 	subtype, ok := data["subtype"].(string)
 	if !ok {
 		return nil, fmt.Errorf("system message: missing or invalid 'subtype' field")
 	}
 
-	msg.Subtype = subtype
-
-	// For init messages, capture all fields (agents, tools, etc.) into Data
-	// The CLI sends these at the root level, not in a nested "data" field
-	if msgData, ok := data["data"].(map[string]any); ok {
-		msg.Data = msgData
-	} else {
-		// Capture all non-standard fields into Data
-		msg.Data = make(map[string]any)
-
-		for k, v := range data {
-			if k != "type" && k != "subtype" {
-				msg.Data[k] = v
-			}
-		}
+	system := SystemMessage{
+		Type:    "system",
+		Subtype: subtype,
+		Data:    systemMessageData(data),
 	}
 
-	return msg, nil
+	switch subtype {
+	case "task_started":
+		return parseTaskStartedMessage(data, system)
+	case "task_progress":
+		return parseTaskProgressMessage(data, system)
+	case "task_notification":
+		return parseTaskNotificationMessage(data, system)
+	default:
+		return &system, nil
+	}
 }
 
 // parseStreamEvent parses a StreamEvent from raw JSON.

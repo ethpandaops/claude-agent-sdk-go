@@ -248,3 +248,84 @@ func TestParseUnknownContentBlockType(t *testing.T) {
 	require.True(t, ok, "expected *TextBlock")
 	require.Equal(t, "normal text", textBlock.Text)
 }
+
+func TestParseTaskSystemMessages(t *testing.T) {
+	logger := slog.Default()
+
+	taskStarted, err := Parse(logger, map[string]any{
+		"type":        "system",
+		"subtype":     "task_started",
+		"task_id":     "task-1",
+		"description": "Run a task",
+		"uuid":        "msg-1",
+		"session_id":  "session-1",
+		"task_type":   "research",
+	})
+	require.NoError(t, err)
+
+	started, ok := taskStarted.(*TaskStartedMessage)
+	require.True(t, ok)
+	require.Equal(t, "task-1", started.TaskID)
+	require.NotNil(t, started.TaskType)
+	require.Equal(t, "research", *started.TaskType)
+
+	taskProgress, err := Parse(logger, map[string]any{
+		"type":           "system",
+		"subtype":        "task_progress",
+		"task_id":        "task-1",
+		"description":    "Still running",
+		"uuid":           "msg-2",
+		"session_id":     "session-1",
+		"last_tool_name": "Read",
+		"usage": map[string]any{
+			"total_tokens": 12,
+			"tool_uses":    3,
+			"duration_ms":  44,
+		},
+	})
+	require.NoError(t, err)
+
+	progress, ok := taskProgress.(*TaskProgressMessage)
+	require.True(t, ok)
+	require.Equal(t, 12, progress.Usage.TotalTokens)
+	require.NotNil(t, progress.LastToolName)
+	require.Equal(t, "Read", *progress.LastToolName)
+
+	taskNotification, err := Parse(logger, map[string]any{
+		"type":        "system",
+		"subtype":     "task_notification",
+		"task_id":     "task-1",
+		"status":      "stopped",
+		"output_file": "/tmp/task.txt",
+		"summary":     "Stopped by user",
+		"uuid":        "msg-3",
+		"session_id":  "session-1",
+	})
+	require.NoError(t, err)
+
+	notification, ok := taskNotification.(*TaskNotificationMessage)
+	require.True(t, ok)
+	require.Equal(t, TaskNotificationStatusStopped, notification.Status)
+	require.Nil(t, notification.Usage)
+}
+
+func TestParseResultMessageStopReason(t *testing.T) {
+	logger := slog.Default()
+
+	msg, err := Parse(logger, map[string]any{
+		"type":            "result",
+		"subtype":         "success",
+		"duration_ms":     10,
+		"duration_api_ms": 5,
+		"is_error":        false,
+		"num_turns":       1,
+		"session_id":      "session-1",
+		"stop_reason":     "end_turn",
+	})
+	require.NoError(t, err)
+
+	result, ok := msg.(*ResultMessage)
+	require.True(t, ok)
+	require.NotNil(t, result.StopReason)
+	require.Equal(t, "end_turn", *result.StopReason)
+}
