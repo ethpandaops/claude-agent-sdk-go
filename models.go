@@ -1,11 +1,24 @@
 package claudesdk
 
-import "github.com/ethpandaops/claude-agent-sdk-go/internal/models"
+import (
+	"context"
+
+	"github.com/ethpandaops/claude-agent-sdk-go/internal/models"
+)
 
 // Re-export model types from internal/models.
 
 // Model holds metadata for a single Claude model.
 type Model = models.Model
+
+// ModelInfo describes a model or accepted CLI alias exposed by ListModels.
+type ModelInfo = models.Info
+
+// ReasoningEffortOption describes a selectable reasoning effort level.
+type ReasoningEffortOption = models.ReasoningEffortOption
+
+// ModelListResponse is the response payload backing ListModels.
+type ModelListResponse = models.ListResponse
 
 // ModelCapability represents a model capability such as vision or tool use.
 type ModelCapability = models.Capability
@@ -35,12 +48,27 @@ const (
 	ModelCostTierLow = models.CostTierLow
 )
 
-// Models returns a copy of all known Claude models.
+// Models returns a copy of the SDK's static Claude model catalog.
+// It is not a live list of models available to the logged-in Claude CLI user.
 func Models() []Model {
 	return models.All()
 }
 
-// ModelByID looks up a model by ID, alias, or dated prefix.
+// ListModels returns a Codex-like model list payload backed by the SDK's static
+// Claude catalog. This is not a live account-specific list from the Claude CLI.
+func ListModels(_ context.Context) ([]ModelInfo, error) {
+	return models.List(), nil
+}
+
+// ListModelsResponse returns the full static model-list response payload.
+func ListModelsResponse(_ context.Context) (*ModelListResponse, error) {
+	resp := models.Response()
+
+	return &resp, nil
+}
+
+// ModelByID looks up a model by ID, alias, dated prefix, or supported static
+// variant like "sonnet[1m]".
 // Returns nil if no model is found.
 func ModelByID(id string) *Model {
 	return models.ByID(id)

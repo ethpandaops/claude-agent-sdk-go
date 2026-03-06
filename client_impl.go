@@ -80,6 +80,11 @@ func (c *clientWrapper) SetModel(ctx context.Context, model *string) error {
 	return c.impl.SetModel(ctx, model)
 }
 
+// ListModels returns the SDK's static Claude model catalog in the ListModels payload shape.
+func (c *clientWrapper) ListModels(ctx context.Context) ([]ModelInfo, error) {
+	return c.impl.ListModels(ctx)
+}
+
 // GetServerInfo returns server initialization info including available commands.
 func (c *clientWrapper) GetServerInfo() map[string]any {
 	return c.impl.GetServerInfo()

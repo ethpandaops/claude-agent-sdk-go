@@ -67,7 +67,8 @@ func (m Model) CapabilityStrings() []string {
 	return out
 }
 
-// All returns a copy of every known model in the catalog.
+// All returns a copy of every known model in the static catalog.
+// This is not a live account-specific list from the Claude CLI.
 func All() []Model {
 	out := make([]Model, len(registry))
 	copy(out, registry)
@@ -78,7 +79,9 @@ func All() []Model {
 // ByID looks up a model by its identifier. It checks in order:
 //  1. Exact match on ID
 //  2. Alias match
-//  3. Prefix match (for dated model IDs like "claude-opus-4-6-20260205")
+//  3. Extended-context Sonnet aliases like "sonnet[1m]" and full names ending
+//     in "[1m]"
+//  4. Prefix match (for dated model IDs like "claude-opus-4-6-20260205")
 //
 // Returns nil if no model is found.
 func ByID(id string) *Model {
@@ -97,6 +100,28 @@ func ByID(id string) *Model {
 			m := registry[i]
 
 			return &m
+		}
+	}
+
+	// Extended-context Sonnet aliases and full model names with [1m].
+	if id == modelIDSonnet1M || id == modelIDClaudeSonnet46_1M {
+		for i := range registry {
+			if registry[i].ID == modelIDSonnet1M {
+				m := registry[i]
+
+				return &m
+			}
+		}
+	}
+
+	// Extended-context Opus aliases and full model names with [1m].
+	if id == modelIDOpus1M || id == modelIDClaudeOpus46_1M {
+		for i := range registry {
+			if registry[i].ID == modelIDOpus1M {
+				m := registry[i]
+
+				return &m
+			}
 		}
 	}
 

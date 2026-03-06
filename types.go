@@ -70,8 +70,6 @@ const (
 	EffortMedium = config.EffortMedium
 	// EffortHigh uses deep thinking.
 	EffortHigh = config.EffortHigh
-	// EffortMax uses maximum thinking depth.
-	EffortMax = config.EffortMax
 )
 
 // AgentDefinition defines a custom agent configuration.

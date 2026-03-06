@@ -47,12 +47,27 @@ for msg, err := range claudesdk.Query(ctx, "Explain Go interfaces") {
 }
 ```
 
+## Model Discovery
+
+`ListModels(ctx)` returns the SDK's static Claude model catalog in a Codex-like
+payload shape. It is not a live per-user model list from the Claude CLI.
+
+```go
+models, err := claudesdk.ListModels(ctx)
+if err != nil {
+    panic(err)
+}
+for _, model := range models {
+    fmt.Println(model.ID, model.Metadata["modelContextWindow"])
+}
+```
+
 ### With Options
 
 ```go
 for msg, err := range claudesdk.Query(ctx, "Hello",
     claudesdk.WithSystemPrompt("You are a helpful assistant"),
-    claudesdk.WithModel("claude-sonnet-4-20250514"),
+    claudesdk.WithModel("claude-sonnet-4-6"),
     claudesdk.WithMaxTurns(3),
 ) {
     // handle msg
@@ -185,6 +200,18 @@ Core message types implement the `Message` interface:
 Content blocks: `TextBlock`, `ThinkingBlock`, `ToolUseBlock`, `ToolResultBlock`
 
 See [types.go](./types.go) for complete type definitions.
+
+## Static Model Catalog
+
+`Models()`, `ModelByID()`, and `ListModels(ctx)` use a static SDK catalog, not a
+live Claude CLI model list for the logged-in user.
+
+The catalog includes current concrete models and accepted static aliases such as
+`default`, `opusplan`, `sonnet[1m]`, and `opus[1m]`.
+
+Dynamic aliases like `default` and `opusplan` are surfaced in `ListModels(ctx)`
+with metadata explaining that they resolve at runtime rather than naming a
+single concrete model in every context.
 
 ## Error Handling
 

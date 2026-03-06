@@ -12,7 +12,7 @@ var allCapabilities = []Capability{
 // Only the latest model per tier gets the short alias.
 var registry = []Model{
 	{
-		ID:              "claude-opus-4-6",
+		ID:              modelIDClaudeOpus46,
 		Name:            "Claude Opus 4.6",
 		Aliases:         []string{"opus"},
 		CostTier:        CostTierHigh,
@@ -21,13 +21,29 @@ var registry = []Model{
 		MaxOutputTokens: 128_000,
 	},
 	{
-		ID:              "claude-sonnet-4-6",
+		ID:              modelIDClaudeSonnet46,
 		Name:            "Claude Sonnet 4.6",
 		Aliases:         []string{"sonnet"},
 		CostTier:        CostTierMedium,
 		Capabilities:    allCapabilities,
 		ContextWindow:   200_000,
 		MaxOutputTokens: 64_000,
+	},
+	{
+		ID:              modelIDSonnet1M,
+		Name:            "Claude Sonnet 4.6 (1M context alias)",
+		CostTier:        CostTierMedium,
+		Capabilities:    allCapabilities,
+		ContextWindow:   1_000_000,
+		MaxOutputTokens: 64_000,
+	},
+	{
+		ID:              modelIDOpus1M,
+		Name:            "Claude Opus 4.6 (1M context alias)",
+		CostTier:        CostTierHigh,
+		Capabilities:    allCapabilities,
+		ContextWindow:   1_000_000,
+		MaxOutputTokens: 128_000,
 	},
 	{
 		ID:              "claude-haiku-4-5",

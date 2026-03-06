@@ -22,6 +22,16 @@ func TestNewClient_Creation(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func TestClient_ListModels(t *testing.T) {
+	t.Parallel()
+
+	client := NewClient()
+	models, err := client.ListModels(context.Background())
+	require.NoError(t, err)
+	require.NotEmpty(t, models)
+	assert.Equal(t, "default", models[0].ID)
+}
+
 // TestClient_QueryNotConnected tests query when not connected.
 func TestClient_QueryNotConnected(t *testing.T) {
 	client := NewClient()

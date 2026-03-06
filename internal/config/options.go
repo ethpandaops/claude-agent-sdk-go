@@ -21,8 +21,6 @@ const (
 	EffortMedium Effort = "medium"
 	// EffortHigh uses deep thinking.
 	EffortHigh Effort = "high"
-	// EffortMax uses maximum thinking depth.
-	EffortMax Effort = "max"
 )
 
 // ThinkingConfig controls extended thinking behavior.

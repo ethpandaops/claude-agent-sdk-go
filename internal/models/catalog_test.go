@@ -47,18 +47,28 @@ func TestByID(t *testing.T) {
 	}{
 		{
 			name:   "exact match",
-			input:  "claude-opus-4-6",
-			wantID: "claude-opus-4-6",
+			input:  modelIDClaudeOpus46,
+			wantID: modelIDClaudeOpus46,
 		},
 		{
 			name:   "alias match opus",
 			input:  "opus",
-			wantID: "claude-opus-4-6",
+			wantID: modelIDClaudeOpus46,
 		},
 		{
 			name:   "alias match sonnet",
 			input:  "sonnet",
-			wantID: "claude-sonnet-4-6",
+			wantID: modelIDClaudeSonnet46,
+		},
+		{
+			name:   "1m alias match",
+			input:  modelIDSonnet1M,
+			wantID: modelIDSonnet1M,
+		},
+		{
+			name:   "opus 1m alias match",
+			input:  modelIDOpus1M,
+			wantID: modelIDOpus1M,
 		},
 		{
 			name:   "alias match haiku",
@@ -66,9 +76,19 @@ func TestByID(t *testing.T) {
 			wantID: "claude-haiku-4-5",
 		},
 		{
+			name:   "full name with 1m suffix",
+			input:  modelIDClaudeSonnet46_1M,
+			wantID: modelIDSonnet1M,
+		},
+		{
+			name:   "full opus name with 1m suffix",
+			input:  modelIDClaudeOpus46_1M,
+			wantID: modelIDOpus1M,
+		},
+		{
 			name:   "prefix match dated ID",
-			input:  "claude-opus-4-6-20260205",
-			wantID: "claude-opus-4-6",
+			input:  modelIDClaudeOpus46 + "-20260205",
+			wantID: modelIDClaudeOpus46,
 		},
 		{
 			name:    "not found",
@@ -123,7 +143,7 @@ func TestByCostTier(t *testing.T) {
 
 func TestCapabilities(t *testing.T) {
 	t.Run("known model", func(t *testing.T) {
-		caps := Capabilities("claude-opus-4-6")
+		caps := Capabilities(modelIDClaudeOpus46)
 		require.NotNil(t, caps)
 		assert.Contains(t, caps, "vision")
 		assert.Contains(t, caps, "tool-use")
@@ -144,7 +164,7 @@ func TestCapabilities(t *testing.T) {
 }
 
 func TestHasCapability(t *testing.T) {
-	m := ByID("claude-opus-4-6")
+	m := ByID(modelIDClaudeOpus46)
 	require.NotNil(t, m)
 
 	assert.True(t, m.HasCapability(CapVision))
@@ -155,7 +175,7 @@ func TestHasCapability(t *testing.T) {
 }
 
 func TestCapabilityStrings(t *testing.T) {
-	m := ByID("claude-opus-4-6")
+	m := ByID(modelIDClaudeOpus46)
 	require.NotNil(t, m)
 
 	strs := m.CapabilityStrings()

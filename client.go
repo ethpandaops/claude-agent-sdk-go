@@ -95,6 +95,10 @@ type Client interface {
 	// Pass nil to use the default model.
 	SetModel(ctx context.Context, model *string) error
 
+	// ListModels returns the SDK's static Claude model catalog in the ListModels payload shape.
+	// This is not a live account-specific list from the Claude CLI.
+	ListModels(ctx context.Context) ([]ModelInfo, error)
+
 	// GetServerInfo returns server initialization info including available commands.
 	// Returns nil if not connected or not in streaming mode.
 	GetServerInfo() map[string]any

@@ -17,6 +17,7 @@ import (
 	"github.com/ethpandaops/claude-agent-sdk-go/internal/errors"
 	"github.com/ethpandaops/claude-agent-sdk-go/internal/mcp"
 	"github.com/ethpandaops/claude-agent-sdk-go/internal/message"
+	"github.com/ethpandaops/claude-agent-sdk-go/internal/models"
 	"github.com/ethpandaops/claude-agent-sdk-go/internal/protocol"
 	"github.com/ethpandaops/claude-agent-sdk-go/internal/subprocess"
 )
@@ -598,6 +599,11 @@ func (c *Client) SetModel(ctx context.Context, model *string) error {
 	}
 
 	return nil
+}
+
+// ListModels returns the SDK's static Claude model catalog in the ListModels payload shape.
+func (c *Client) ListModels(_ context.Context) ([]models.Info, error) {
+	return models.List(), nil
 }
 
 // GetMCPStatus queries the CLI for live MCP server connection status.
