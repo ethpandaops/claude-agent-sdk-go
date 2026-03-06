@@ -14,7 +14,7 @@ import (
 const (
 	bashToolName       = "Bash"
 	writeToolName      = "Write"
-	fastModelName      = "haiku"
+	fastModelName      = "claude-haiku-4-5"
 	maxTurnsPerExample = 3
 )
 

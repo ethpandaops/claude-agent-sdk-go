@@ -14,5 +14,5 @@ func TestListModels(t *testing.T) {
 	models, err := ListModels(context.Background())
 	require.NoError(t, err)
 	require.NotEmpty(t, models)
-	assert.Equal(t, "default", models[0].ID)
+	assert.Equal(t, "claude-opus-4-6", models[0].ID)
 }

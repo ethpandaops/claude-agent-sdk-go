@@ -20,7 +20,9 @@ var (
 	_ Message = (*StreamEvent)(nil)
 )
 
-// UserMessageContent represents content that can be either a string or []ContentBlock.
+// UserMessageContent represents Claude CLI user message content.
+// Top-level user prompts are emitted as plain strings, while structured
+// responses can use content blocks.
 type UserMessageContent struct {
 	text   *string        // Set when content is a string
 	blocks []ContentBlock // Set when content is array of blocks
@@ -75,8 +77,7 @@ func (c UserMessageContent) MarshalJSON() ([]byte, error) {
 	return json.Marshal(c.blocks)
 }
 
-// UnmarshalJSON implements json.Unmarshaler.
-// Accepts both string and array of content blocks.
+// UnmarshalJSON implements json.Unmarshaler for the Claude CLI content shapes.
 func (c *UserMessageContent) UnmarshalJSON(data []byte) error {
 	// Try string first
 	var text string

@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/require"
 	claudesdk "github.com/ethpandaops/claude-agent-sdk-go"
+	"github.com/stretchr/testify/require"
 )
 
 // TestStderrCallback_ReceivesOutput tests Stderr callback invocation.
@@ -20,8 +20,8 @@ func TestStderrCallback_ReceivesOutput(t *testing.T) {
 	var stderrLines []string
 
 	for _, err := range claudesdk.Query(ctx, "Say 'hello'",
-		claudesdk.WithModel("haiku"),
-		claudesdk.WithPermissionMode("acceptAll"),
+		claudesdk.WithModel("claude-haiku-4-5"),
+		claudesdk.WithPermissionMode("bypassPermissions"),
 		claudesdk.WithMaxTurns(1),
 		claudesdk.WithStderr(func(line string) {
 			stderrLines = append(stderrLines, line)
@@ -44,8 +44,8 @@ func TestStderrCallback_CapturesDebugInfo(t *testing.T) {
 	var stderrLines []string
 
 	for _, err := range claudesdk.Query(ctx, "Say 'debug test'",
-		claudesdk.WithModel("haiku"),
-		claudesdk.WithPermissionMode("acceptAll"),
+		claudesdk.WithModel("claude-haiku-4-5"),
+		claudesdk.WithPermissionMode("bypassPermissions"),
 		claudesdk.WithMaxTurns(1),
 		claudesdk.WithStderr(func(line string) {
 			stderrLines = append(stderrLines, line)
@@ -84,8 +84,8 @@ func TestMaxBudgetUSD_LimitEnforced(t *testing.T) {
 
 	for msg, err := range claudesdk.Query(ctx,
 		"What is 2+2? Reply with one digit.",
-		claudesdk.WithModel("haiku"),
-		claudesdk.WithPermissionMode("acceptAll"),
+		claudesdk.WithModel("claude-haiku-4-5"),
+		claudesdk.WithPermissionMode("bypassPermissions"),
 		claudesdk.WithMaxTurns(1),
 		claudesdk.WithMaxBudgetUSD(budget),
 	) {
@@ -135,8 +135,8 @@ func TestMaxBudgetUSD_ZeroBudget(t *testing.T) {
 	var resultSubtype string
 
 	for msg, err := range claudesdk.Query(ctx, "Say hello",
-		claudesdk.WithModel("haiku"),
-		claudesdk.WithPermissionMode("acceptAll"),
+		claudesdk.WithModel("claude-haiku-4-5"),
+		claudesdk.WithPermissionMode("bypassPermissions"),
 		claudesdk.WithMaxTurns(1),
 		claudesdk.WithMaxBudgetUSD(budget),
 	) {

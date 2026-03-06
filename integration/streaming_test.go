@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/require"
 	claudesdk "github.com/ethpandaops/claude-agent-sdk-go"
+	"github.com/stretchr/testify/require"
 )
 
 // TestPartialMessages_StreamEventsReceived tests StreamEvent with IncludePartialMessages.
@@ -19,9 +19,9 @@ func TestPartialMessages_StreamEventsReceived(t *testing.T) {
 	var streamEventCount int
 
 	for msg, err := range claudesdk.Query(ctx, "Write a short haiku about testing.",
-		claudesdk.WithModel("haiku"),
+		claudesdk.WithModel("claude-haiku-4-5"),
 		claudesdk.WithIncludePartialMessages(true),
-		claudesdk.WithPermissionMode("acceptAll"),
+		claudesdk.WithPermissionMode("bypassPermissions"),
 		claudesdk.WithMaxTurns(1),
 	) {
 		if err != nil {
@@ -46,9 +46,9 @@ func TestPartialMessages_EventTypes(t *testing.T) {
 	eventTypes := make(map[string]bool)
 
 	for msg, err := range claudesdk.Query(ctx, "Say 'hello world'",
-		claudesdk.WithModel("haiku"),
+		claudesdk.WithModel("claude-haiku-4-5"),
 		claudesdk.WithIncludePartialMessages(true),
-		claudesdk.WithPermissionMode("acceptAll"),
+		claudesdk.WithPermissionMode("bypassPermissions"),
 		claudesdk.WithMaxTurns(1),
 	) {
 		if err != nil {
@@ -78,9 +78,9 @@ func TestPartialMessages_DisabledByDefault(t *testing.T) {
 	var streamEventCount int
 
 	for msg, err := range claudesdk.Query(ctx, "Say 'hello'",
-		claudesdk.WithModel("haiku"),
+		claudesdk.WithModel("claude-haiku-4-5"),
 		claudesdk.WithIncludePartialMessages(false),
-		claudesdk.WithPermissionMode("acceptAll"),
+		claudesdk.WithPermissionMode("bypassPermissions"),
 		claudesdk.WithMaxTurns(1),
 	) {
 		if err != nil {
@@ -111,9 +111,9 @@ func TestPartialMessages_ThinkingDeltas(t *testing.T) {
 
 	for msg, err := range claudesdk.Query(ctx,
 		"Think step by step: what is the sum of numbers from 1 to 10?",
-		claudesdk.WithModel("sonnet"),
+		claudesdk.WithModel("claude-sonnet-4-6"),
 		claudesdk.WithIncludePartialMessages(true),
-		claudesdk.WithPermissionMode("acceptAll"),
+		claudesdk.WithPermissionMode("bypassPermissions"),
 		claudesdk.WithMaxTurns(1),
 		claudesdk.WithThinking(claudesdk.ThinkingConfigEnabled{BudgetTokens: maxThinking}),
 	) {

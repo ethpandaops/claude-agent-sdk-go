@@ -109,7 +109,7 @@ func exampleBasicThinking() {
 
 	if err := client.Start(ctx,
 		claudesdk.WithLogger(logger),
-		claudesdk.WithModel("claude-sonnet-4-5"),
+		claudesdk.WithModel("claude-sonnet-4-6"),
 		claudesdk.WithThinking(claudesdk.ThinkingConfigEnabled{BudgetTokens: 8000}),
 		claudesdk.WithMaxTurns(1),
 	); err != nil {
@@ -162,7 +162,7 @@ func exampleThinkingConfig() {
 	// ThinkingConfigDisabled turns off thinking entirely.
 	if err := client.Start(ctx,
 		claudesdk.WithLogger(logger),
-		claudesdk.WithModel("claude-sonnet-4-5"),
+		claudesdk.WithModel("claude-sonnet-4-6"),
 		claudesdk.WithThinking(claudesdk.ThinkingConfigEnabled{BudgetTokens: 10000}),
 		claudesdk.WithEffort(claudesdk.EffortHigh),
 		claudesdk.WithMaxTurns(1),
@@ -212,7 +212,7 @@ func exampleStreamingThinking() {
 
 	if err := client.Start(ctx,
 		claudesdk.WithLogger(logger),
-		claudesdk.WithModel("claude-sonnet-4-5"),
+		claudesdk.WithModel("claude-sonnet-4-6"),
 		claudesdk.WithThinking(claudesdk.ThinkingConfigEnabled{BudgetTokens: 8000}),
 		claudesdk.WithIncludePartialMessages(true),
 		claudesdk.WithMaxTurns(1),
@@ -255,7 +255,7 @@ func main() {
 	fmt.Println(strings.Repeat("=", 60))
 	fmt.Println()
 	fmt.Println("Note: Extended thinking requires a thinking-capable model")
-	fmt.Println("(e.g., claude-sonnet-4-5) and WithThinking option.")
+	fmt.Println("(e.g., claude-sonnet-4-6) and WithThinking option.")
 	fmt.Println()
 
 	examples := map[string]func(){

@@ -7,8 +7,9 @@ import (
 )
 
 func TestServerConfigGetType(t *testing.T) {
-	t.Run("stdio defaults to stdio type when nil", func(t *testing.T) {
+	t.Run("stdio returns configured type", func(t *testing.T) {
 		cfg := &StdioServerConfig{
+			Type:    ServerTypeStdio,
 			Command: "server-binary",
 		}
 
@@ -16,9 +17,8 @@ func TestServerConfigGetType(t *testing.T) {
 	})
 
 	t.Run("stdio uses explicit type when set", func(t *testing.T) {
-		explicit := ServerTypeSSE
 		cfg := &StdioServerConfig{
-			Type:    &explicit,
+			Type:    ServerTypeSSE,
 			Command: "server-binary",
 		}
 

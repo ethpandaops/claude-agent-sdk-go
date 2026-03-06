@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/require"
 	claudesdk "github.com/ethpandaops/claude-agent-sdk-go"
+	"github.com/stretchr/testify/require"
 )
 
 func TestPlanMode_UserInputCallback_Client(t *testing.T) {
@@ -46,7 +46,7 @@ func TestPlanMode_UserInputCallback_Client(t *testing.T) {
 	defer client.Close()
 
 	err := client.Start(ctx,
-		claudesdk.WithModel("haiku"),
+		claudesdk.WithModel("claude-haiku-4-5"),
 		claudesdk.WithPermissionMode("plan"),
 		claudesdk.WithOnUserInput(onUserInput),
 		claudesdk.WithMaxTurns(5),
@@ -110,7 +110,7 @@ func TestPlanMode_UserInputCallback_Query(t *testing.T) {
 	for msg, err := range claudesdk.Query(ctx,
 		"Use AskUserQuestion to ask me to choose Go or Rust. "+
 			"After I answer, confirm my selected language in one sentence.",
-		claudesdk.WithModel("haiku"),
+		claudesdk.WithModel("claude-haiku-4-5"),
 		claudesdk.WithPermissionMode("plan"),
 		claudesdk.WithOnUserInput(onUserInput),
 		claudesdk.WithMaxTurns(5),

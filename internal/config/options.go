@@ -61,14 +61,11 @@ type Options struct {
 	// If set, this takes precedence over SystemPrompt.
 	SystemPromptPreset *SystemPromptPreset
 
-	// Model specifies which Claude model to use (e.g., "claude-3-5-sonnet-20241022")
+	// Model specifies which Claude model to use (e.g., "claude-sonnet-4-6")
 	Model string
 
-	// PermissionMode controls how permissions are handled
-	// Valid values: "acceptEdits", "bypassPermissions", "default", "dontAsk", "plan"
-	// Legacy aliases are supported and normalized:
-	// - "acceptAll" -> "bypassPermissions"
-	// - "prompt" -> "default"
+	// PermissionMode controls how permissions are handled.
+	// Valid values: "acceptEdits", "bypassPermissions", "default", "dontAsk", "plan".
 	PermissionMode string
 
 	// MaxTurns limits the maximum number of conversation turns

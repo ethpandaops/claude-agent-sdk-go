@@ -29,7 +29,7 @@ func TestClient_ListModels(t *testing.T) {
 	models, err := client.ListModels(context.Background())
 	require.NoError(t, err)
 	require.NotEmpty(t, models)
-	assert.Equal(t, "default", models[0].ID)
+	assert.Equal(t, "claude-opus-4-6", models[0].ID)
 }
 
 // TestClient_QueryNotConnected tests query when not connected.
@@ -100,7 +100,7 @@ func TestClient_SetModelNotConnected(t *testing.T) {
 
 	ctx := context.Background()
 
-	model := "claude-3-5-sonnet-20241022"
+	model := "claude-sonnet-4-6"
 	err := client.SetModel(ctx, &model)
 
 	require.Error(t, err)
@@ -272,7 +272,7 @@ func TestClient_WithOptions(t *testing.T) {
 		},
 		{
 			name: "with model",
-			opts: []Option{WithModel("claude-3-5-sonnet-20241022")},
+			opts: []Option{WithModel("claude-sonnet-4-6")},
 		},
 		{
 			name: "with max turns",
@@ -756,13 +756,11 @@ func TestClient_WithMCPServers(t *testing.T) {
 	defer client.Close()
 
 	ctx := context.Background()
-	stdioType := MCPServerTypeStdio
-
 	err := client.Start(ctx,
 		WithCliPath("/nonexistent/claude"),
 		WithMCPServers(map[string]MCPServerConfig{
 			"test-server": &MCPStdioServerConfig{
-				Type:    &stdioType,
+				Type:    MCPServerTypeStdio,
 				Command: "node",
 				Args:    []string{"server.js"},
 			},
@@ -922,11 +920,11 @@ func TestClient_ControlMessageFormats(t *testing.T) {
 		{
 			name:    "set_model control request",
 			subtype: "set_model",
-			payload: map[string]any{"model": "claude-3-5-sonnet-20241022"},
+			payload: map[string]any{"model": "claude-sonnet-4-6"},
 			expected: map[string]any{
 				"type":    "control_request",
 				"subtype": "set_model",
-				"payload": map[string]any{"model": "claude-3-5-sonnet-20241022"},
+				"payload": map[string]any{"model": "claude-sonnet-4-6"},
 			},
 		},
 		{
@@ -983,7 +981,7 @@ func TestClient_MessageTypeHandling(t *testing.T) {
 		},
 		{
 			name:        "assistant message with text",
-			messageJSON: `{"type":"assistant","message":{"type":"message","role":"assistant","model":"claude-3-5-sonnet-20241022","id":"msg_123","content":[{"type":"text","text":"Hello!"}]}}`,
+			messageJSON: `{"type":"assistant","message":{"type":"message","role":"assistant","model":"claude-sonnet-4-6","id":"msg_123","content":[{"type":"text","text":"Hello!"}]}}`,
 			expectType:  "assistant",
 		},
 		{
@@ -1228,7 +1226,7 @@ func TestClient_StartWithPrompt(t *testing.T) {
 
 		err := client.StartWithPrompt(ctx, "What is 2+2?",
 			WithCliPath("/nonexistent/claude"),
-			WithModel("claude-3-5-sonnet-20241022"),
+			WithModel("claude-sonnet-4-6"),
 			WithPermissionMode("acceptEdits"),
 			WithSystemPrompt("You are a helpful assistant."),
 		)

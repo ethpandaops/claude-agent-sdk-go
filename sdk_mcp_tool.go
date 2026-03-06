@@ -7,7 +7,7 @@ import (
 	internalmcp "github.com/ethpandaops/claude-agent-sdk-go/internal/mcp"
 )
 
-// Re-export MCP SDK types for public API.
+// Public MCP SDK types.
 // These are the official MCP protocol types.
 type (
 	// CallToolResult is the server's response to a tool call.

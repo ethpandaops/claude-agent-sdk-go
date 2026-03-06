@@ -69,7 +69,7 @@ func codeReviewerExample() {
 				Prompt: "You are a code reviewer. Be very concise. " +
 					"Give a 2-3 bullet point review only.",
 				Tools: []string{"Read"},
-				Model: new("sonnet"),
+				Model: new("claude-sonnet-4-6"),
 			},
 		}),
 		claudesdk.WithPermissionMode("bypassPermissions"),
@@ -119,7 +119,7 @@ func documentationWriterExample() {
 			"doc-writer": {
 				Description: "Writes concise documentation",
 				Prompt:      "You are a documentation expert. Be very concise.",
-				Model:       new("sonnet"),
+				Model:       new("claude-sonnet-4-6"),
 			},
 		}),
 		claudesdk.WithPermissionMode("bypassPermissions"),
@@ -173,7 +173,7 @@ func multipleAgentsExample() {
 			"tester": {
 				Description: "Creates and runs tests",
 				Prompt:      "You are a testing expert. Be very concise.",
-				Model:       new("sonnet"),
+				Model:       new("claude-sonnet-4-6"),
 			},
 		}),
 		claudesdk.WithSettingSources(

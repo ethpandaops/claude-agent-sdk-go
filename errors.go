@@ -2,7 +2,7 @@ package claudesdk
 
 import "github.com/ethpandaops/claude-agent-sdk-go/internal/errors"
 
-// Re-export error types from internal package
+// Public error types.
 
 // CLINotFoundError indicates the Claude CLI binary was not found.
 type CLINotFoundError = errors.CLINotFoundError
@@ -22,7 +22,7 @@ type CLIJSONDecodeError = errors.CLIJSONDecodeError
 // ClaudeSDKError is the base interface for all SDK errors.
 type ClaudeSDKError = errors.ClaudeSDKError
 
-// Re-export sentinel errors from internal package.
+// Public sentinel errors.
 var (
 	// ErrClientNotConnected indicates the client is not connected.
 	ErrClientNotConnected = errors.ErrClientNotConnected

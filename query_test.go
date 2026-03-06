@@ -73,8 +73,8 @@ func TestQuery_WithOptions(t *testing.T) {
 
 	for _, err := range Query(ctx, "test",
 		WithSystemPrompt("You are a helpful assistant."),
-		WithModel("claude-sonnet-4-5-20250514"),
-		WithPermissionMode("acceptAll"),
+		WithModel("claude-sonnet-4-6"),
+		WithPermissionMode("bypassPermissions"),
 		WithMaxTurns(1),
 		WithThinking(ThinkingConfigEnabled{BudgetTokens: 1000}),
 		WithMaxBudgetUSD(1.0),
@@ -110,7 +110,7 @@ func TestQuery_WithCwd(t *testing.T) {
 
 	for _, err := range Query(ctx, "test",
 		WithCwd(absPath),
-		WithPermissionMode("acceptAll"),
+		WithPermissionMode("bypassPermissions"),
 		WithMaxTurns(1),
 	) {
 		// Either succeeds or returns an expected CLI/context error.
@@ -128,7 +128,7 @@ func TestQuery_WithEnv(t *testing.T) {
 	defer cancel()
 
 	for _, err := range Query(ctx, "test",
-		WithPermissionMode("acceptAll"),
+		WithPermissionMode("bypassPermissions"),
 		WithMaxTurns(1),
 		WithEnv(map[string]string{
 			"CLAUDE_SDK_TEST_VAR": "test_value_123",
@@ -157,7 +157,7 @@ func TestQuery_WithSystemPromptPreset(t *testing.T) {
 			Preset: "claude_code",
 			Append: &appendText,
 		}),
-		WithPermissionMode("acceptAll"),
+		WithPermissionMode("bypassPermissions"),
 		WithMaxTurns(1),
 	) {
 		// Either succeeds or returns an expected CLI/context error.
@@ -174,7 +174,7 @@ func TestQuery_WithAgents(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	model := "sonnet"
+	model := "claude-sonnet-4-6"
 
 	for _, err := range Query(ctx, "test",
 		WithAgents(map[string]*AgentDefinition{
@@ -185,7 +185,7 @@ func TestQuery_WithAgents(t *testing.T) {
 				Model:       &model,
 			},
 		}),
-		WithPermissionMode("acceptAll"),
+		WithPermissionMode("bypassPermissions"),
 		WithMaxTurns(1),
 	) {
 		// Either succeeds or returns an expected CLI/context error.
@@ -215,7 +215,7 @@ func TestQuery_WithOutputFormat(t *testing.T) {
 				"required": []string{"answer"},
 			},
 		}),
-		WithPermissionMode("acceptAll"),
+		WithPermissionMode("bypassPermissions"),
 		WithMaxTurns(1),
 	) {
 		// Either succeeds or returns an expected CLI/context error.
@@ -234,7 +234,7 @@ func TestQuery_WithResume(t *testing.T) {
 
 	for _, err := range Query(ctx, "test",
 		WithResume("nonexistent-session-id"),
-		WithPermissionMode("acceptAll"),
+		WithPermissionMode("bypassPermissions"),
 		WithMaxTurns(1),
 	) {
 		// May fail due to invalid session, but should not be unexpected error type.
@@ -257,7 +257,7 @@ func TestQuery_WithExtraArgs(t *testing.T) {
 		WithExtraArgs(map[string]*string{
 			"verbose": &verbose, // Boolean flag with empty value
 		}),
-		WithPermissionMode("acceptAll"),
+		WithPermissionMode("bypassPermissions"),
 		WithMaxTurns(1),
 	) {
 		// Either succeeds or returns an expected CLI/context error.
@@ -285,7 +285,7 @@ func TestQuery_CanUseToolWithPermissionPromptToolName(t *testing.T) {
 			return &PermissionResultAllow{Behavior: "allow"}, nil
 		}),
 		WithPermissionPromptToolName("custom"),
-		WithPermissionMode("acceptAll"),
+		WithPermissionMode("bypassPermissions"),
 	) {
 		require.Error(t, err)
 		require.Contains(t, err.Error(), "can_use_tool callback cannot be used with permission_prompt_tool_name")
@@ -306,7 +306,7 @@ func TestQuery_CanUseToolAutoConfiguresPermissionPrompt(t *testing.T) {
 		) (PermissionResult, error) {
 			return &PermissionResultAllow{Behavior: "allow"}, nil
 		},
-		PermissionMode: "acceptAll",
+		PermissionMode: "bypassPermissions",
 	}
 
 	// Call validateAndConfigureOptions directly to test the auto-configuration
@@ -325,7 +325,7 @@ func TestQuery_OnUserInputWithPermissionPromptToolName(t *testing.T) {
 	for _, err := range Query(ctx, "test",
 		WithOnUserInput(dummyOnUserInput),
 		WithPermissionPromptToolName("custom"),
-		WithPermissionMode("acceptAll"),
+		WithPermissionMode("bypassPermissions"),
 	) {
 		require.Error(t, err)
 		require.Contains(t, err.Error(), "on_user_input callback cannot be used with permission_prompt_tool_name")
@@ -354,7 +354,7 @@ func TestQueryStream_CanUseToolWithPermissionPromptToolName(t *testing.T) {
 			return &PermissionResultAllow{Behavior: "allow"}, nil
 		}),
 		WithPermissionPromptToolName("custom"),
-		WithPermissionMode("acceptAll"),
+		WithPermissionMode("bypassPermissions"),
 	) {
 		require.Error(t, err)
 		require.Contains(t, err.Error(), "can_use_tool callback cannot be used with permission_prompt_tool_name")
@@ -376,7 +376,7 @@ func TestQueryStream_OnUserInputWithPermissionPromptToolName(t *testing.T) {
 	for _, err := range QueryStream(ctx, messages,
 		WithOnUserInput(dummyOnUserInput),
 		WithPermissionPromptToolName("custom"),
-		WithPermissionMode("acceptAll"),
+		WithPermissionMode("bypassPermissions"),
 	) {
 		require.Error(t, err)
 		require.Contains(t, err.Error(), "on_user_input callback cannot be used with permission_prompt_tool_name")
@@ -716,7 +716,7 @@ func TestQueryStream_DeferOrderingDoesNotDeadlock(t *testing.T) {
 	for _, err := range QueryStream(ctx, slowMessages,
 		WithCliPath("/nonexistent/path/to/claude"),
 		WithMCPServers(map[string]MCPServerConfig{
-			"test": &MCPStdioServerConfig{Command: "echo", Args: []string{"test"}},
+			"test": &MCPStdioServerConfig{Type: MCPServerTypeStdio, Command: "echo", Args: []string{"test"}},
 		}), // Enable MCP to trigger resultReceived channel usage
 	) {
 		_ = err

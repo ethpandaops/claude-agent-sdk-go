@@ -38,7 +38,7 @@ func (c *clientWrapper) StartWithStream(
 	messages iter.Seq[StreamingMessage],
 	opts ...Option,
 ) error {
-	// Convert StreamingMessage (alias) to message.StreamingMessage
+	// Convert the public streaming type to the internal message type.
 	convertedMessages := func(yield func(message.StreamingMessage) bool) {
 		for msg := range messages {
 			if !yield(msg) {
@@ -131,6 +131,6 @@ func applyAgentOptionsToConfig(opts []Option) *config.Options {
 	if options == nil {
 		return nil
 	}
-	// ClaudeAgentOptions is a type alias to config.Options, so direct cast works
+	// The public options type shares the same underlying representation.
 	return options
 }

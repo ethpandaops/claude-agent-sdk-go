@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/require"
 	claudesdk "github.com/ethpandaops/claude-agent-sdk-go"
+	"github.com/stretchr/testify/require"
 )
 
 // TestAgentsAndSettings_AgentDefinition tests custom agent configuration.
@@ -22,7 +22,7 @@ func TestAgentsAndSettings_AgentDefinition(t *testing.T) {
 	receivedResponse := false
 
 	for msg, err := range claudesdk.Query(ctx, "Say 'hello'",
-		claudesdk.WithModel("haiku"),
+		claudesdk.WithModel("claude-haiku-4-5"),
 		claudesdk.WithAgents(map[string]*claudesdk.AgentDefinition{
 			"test-agent": {
 				Description: "A test agent for unit testing",
@@ -31,7 +31,7 @@ func TestAgentsAndSettings_AgentDefinition(t *testing.T) {
 				Model:       &sonnetModel,
 			},
 		}),
-		claudesdk.WithPermissionMode("acceptAll"),
+		claudesdk.WithPermissionMode("bypassPermissions"),
 		claudesdk.WithMaxTurns(1),
 	) {
 		if err != nil {
@@ -59,9 +59,9 @@ func TestAgentsAndSettings_SettingSources(t *testing.T) {
 	receivedResult := false
 
 	for msg, err := range claudesdk.Query(ctx, "What is 2+2? Reply with just the number.",
-		claudesdk.WithModel("haiku"),
+		claudesdk.WithModel("claude-haiku-4-5"),
 		claudesdk.WithSettingSources(claudesdk.SettingSourceUser, claudesdk.SettingSourceProject),
-		claudesdk.WithPermissionMode("acceptAll"),
+		claudesdk.WithPermissionMode("bypassPermissions"),
 		claudesdk.WithMaxTurns(1),
 	) {
 		if err != nil {
@@ -86,9 +86,9 @@ func TestAgentsAndSettings_NoSettingSources(t *testing.T) {
 	receivedResult := false
 
 	for msg, err := range claudesdk.Query(ctx, "Say 'isolated'",
-		claudesdk.WithModel("haiku"),
+		claudesdk.WithModel("claude-haiku-4-5"),
 		claudesdk.WithSettingSources(),
-		claudesdk.WithPermissionMode("acceptAll"),
+		claudesdk.WithPermissionMode("bypassPermissions"),
 		claudesdk.WithMaxTurns(1),
 	) {
 		if err != nil {
@@ -145,10 +145,10 @@ You are a simple test agent. When asked a question, provide a brief, helpful ans
 	)
 
 	for msg, err := range claudesdk.Query(ctx, "Say hello in exactly 3 words",
-		claudesdk.WithModel("haiku"),
+		claudesdk.WithModel("claude-haiku-4-5"),
 		claudesdk.WithSettingSources(claudesdk.SettingSourceProject),
 		claudesdk.WithCwd(tmpDir),
-		claudesdk.WithPermissionMode("acceptAll"),
+		claudesdk.WithPermissionMode("bypassPermissions"),
 		claudesdk.WithMaxTurns(1),
 	) {
 		if err != nil {

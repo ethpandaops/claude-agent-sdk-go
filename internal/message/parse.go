@@ -453,19 +453,7 @@ func parseContentBlock(data map[string]any) (ContentBlock, error) {
 	case "tool_result":
 		return parseToolResultBlock(data)
 	default:
-		// Fall back to a generic TextBlock for unknown types (forward-compatible
-		// with new CLI content block types), matching UnmarshalContentBlock behavior.
-		jsonBytes, err := json.Marshal(data)
-		if err != nil {
-			return nil, fmt.Errorf("marshal unknown content block: %w", err)
-		}
-
-		var block TextBlock
-		if err := json.Unmarshal(jsonBytes, &block); err != nil {
-			return nil, fmt.Errorf("unmarshal unknown content block as text: %w", err)
-		}
-
-		return &block, nil
+		return nil, fmt.Errorf("unknown content block type %q", blockType)
 	}
 }
 

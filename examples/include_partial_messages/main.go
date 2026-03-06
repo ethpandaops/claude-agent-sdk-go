@@ -96,7 +96,7 @@ func main() {
 	if err := client.Start(ctx,
 		claudesdk.WithLogger(logger),
 		claudesdk.WithIncludePartialMessages(true),
-		claudesdk.WithModel("claude-sonnet-4-5"),
+		claudesdk.WithModel("claude-sonnet-4-6"),
 		claudesdk.WithMaxTurns(2),
 		claudesdk.WithThinking(claudesdk.ThinkingConfigEnabled{BudgetTokens: 8000}),
 		claudesdk.WithPermissionMode("bypassPermissions"),

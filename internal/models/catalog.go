@@ -4,7 +4,6 @@ package models
 
 import (
 	"slices"
-	"strings"
 )
 
 // Capability represents a model capability such as vision or tool use.
@@ -39,8 +38,6 @@ type Model struct {
 	ID string
 	// Name is the human-readable display name.
 	Name string
-	// Aliases are shorthand names accepted by the CLI (e.g. "opus").
-	Aliases []string
 	// CostTier is the relative cost tier for this model.
 	CostTier CostTier
 	// Capabilities lists what the model supports.
@@ -76,59 +73,12 @@ func All() []Model {
 	return out
 }
 
-// ByID looks up a model by its identifier. It checks in order:
-//  1. Exact match on ID
-//  2. Alias match
-//  3. Extended-context Sonnet aliases like "sonnet[1m]" and full names ending
-//     in "[1m]"
-//  4. Prefix match (for dated model IDs like "claude-opus-4-6-20260205")
-//
+// ByID looks up a model by its identifier.
 // Returns nil if no model is found.
 func ByID(id string) *Model {
 	// Exact ID match.
 	for i := range registry {
 		if registry[i].ID == id {
-			m := registry[i]
-
-			return &m
-		}
-	}
-
-	// Alias match.
-	for i := range registry {
-		if slices.Contains(registry[i].Aliases, id) {
-			m := registry[i]
-
-			return &m
-		}
-	}
-
-	// Extended-context Sonnet aliases and full model names with [1m].
-	if id == modelIDSonnet1M || id == modelIDClaudeSonnet46_1M {
-		for i := range registry {
-			if registry[i].ID == modelIDSonnet1M {
-				m := registry[i]
-
-				return &m
-			}
-		}
-	}
-
-	// Extended-context Opus aliases and full model names with [1m].
-	if id == modelIDOpus1M || id == modelIDClaudeOpus46_1M {
-		for i := range registry {
-			if registry[i].ID == modelIDOpus1M {
-				m := registry[i]
-
-				return &m
-			}
-		}
-	}
-
-	// Prefix match: the queried ID starts with a known model ID.
-	// This handles dated variants like "claude-opus-4-6-20260205".
-	for i := range registry {
-		if strings.HasPrefix(id, registry[i].ID) {
 			m := registry[i]
 
 			return &m

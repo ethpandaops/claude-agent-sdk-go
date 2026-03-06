@@ -569,17 +569,15 @@ func (c *Client) SetPermissionMode(ctx context.Context, mode string) error {
 		return errors.ErrClientNotConnected
 	}
 
-	normalizedMode := config.NormalizePermissionMode(mode)
-
-	c.log.Info("Setting permission mode", "mode", normalizedMode)
+	c.log.Info("Setting permission mode", "mode", mode)
 
 	payload := map[string]any{
-		"mode": normalizedMode,
+		"mode": mode,
 	}
 
 	_, err := c.controller.SendRequest(ctx, "set_permission_mode", payload, setPermissionModeTimeout)
 	if err != nil {
-		return fmt.Errorf("set permission mode to %q: %w", normalizedMode, err)
+		return fmt.Errorf("set permission mode to %q: %w", mode, err)
 	}
 
 	return nil

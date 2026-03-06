@@ -69,9 +69,9 @@ func TestBuildArgs_Basic(t *testing.T) {
 // TestBuildArgs_WithOptions tests command building with various options.
 func TestBuildArgs_WithOptions(t *testing.T) {
 	options := &config.Options{
-		PermissionMode: "acceptAll",
+		PermissionMode: "bypassPermissions",
 		MaxTurns:       5,
-		Model:          "claude-3-5-sonnet-20241022",
+		Model:          "claude-sonnet-4-6",
 		SystemPrompt:   "You are helpful",
 	}
 
@@ -82,7 +82,7 @@ func TestBuildArgs_WithOptions(t *testing.T) {
 	require.Contains(t, args, "--max-turns")
 	require.Contains(t, args, "5")
 	require.Contains(t, args, "--model")
-	require.Contains(t, args, "claude-3-5-sonnet-20241022")
+	require.Contains(t, args, "claude-sonnet-4-6")
 	require.Contains(t, args, "--system-prompt")
 	require.Contains(t, args, "You are helpful")
 }
@@ -115,13 +115,13 @@ func TestBuildArgs_WithSystemPromptPreset(t *testing.T) {
 // TestBuildArgs_WithFallbackModel tests fallback model option.
 func TestBuildArgs_WithFallbackModel(t *testing.T) {
 	options := &config.Options{
-		FallbackModel: "claude-3-5-sonnet-20241022",
+		FallbackModel: "claude-sonnet-4-6",
 	}
 
 	args := BuildArgs("test", options, false)
 
 	require.Contains(t, args, "--fallback-model")
-	require.Contains(t, args, "claude-3-5-sonnet-20241022")
+	require.Contains(t, args, "claude-sonnet-4-6")
 }
 
 // TestBuildArgs_WithAddDirs tests add-dir option.
@@ -266,11 +266,10 @@ func TestBuildArgs_WithSandboxAndSettingsJSON(t *testing.T) {
 
 // TestBuildArgs_WithMCPServers tests MCP server configuration with mcpServers wrapper.
 func TestBuildArgs_WithMCPServers(t *testing.T) {
-	serverType := mcp.ServerTypeStdio
 	options := &config.Options{
 		MCPServers: map[string]mcp.ServerConfig{
 			"test-server": &mcp.StdioServerConfig{
-				Type:    &serverType,
+				Type:    mcp.ServerTypeStdio,
 				Command: "test-command",
 				Args:    []string{"--arg1"},
 			},
@@ -334,12 +333,11 @@ func TestBuildArgs_WithMCPConfigJSONString(t *testing.T) {
 
 // TestBuildArgs_MCPConfigTakesPrecedence tests that MCPConfig takes precedence over MCPServers.
 func TestBuildArgs_MCPConfigTakesPrecedence(t *testing.T) {
-	serverType := mcp.ServerTypeStdio
 	options := &config.Options{
 		MCPConfig: "/path/to/config.json",
 		MCPServers: map[string]mcp.ServerConfig{
 			"ignored": &mcp.StdioServerConfig{
-				Type:    &serverType,
+				Type:    mcp.ServerTypeStdio,
 				Command: "should-not-appear",
 			},
 		},
@@ -657,11 +655,10 @@ func TestBuildArgs_WithUser(t *testing.T) {
 
 // TestBuildArgs_WithMCPServersStdioConfig tests MCP server with full stdio configuration.
 func TestBuildArgs_WithMCPServersStdioConfig(t *testing.T) {
-	serverType := mcp.ServerTypeStdio
 	options := &config.Options{
 		MCPServers: map[string]mcp.ServerConfig{
 			"filesystem": &mcp.StdioServerConfig{
-				Type:    &serverType,
+				Type:    mcp.ServerTypeStdio,
 				Command: "npx",
 				Args:    []string{"-y", "@modelcontextprotocol/server-filesystem", "/home/user"},
 				Env: map[string]string{
@@ -719,11 +716,10 @@ func TestBuildArgs_WithMCPServersSSEConfig(t *testing.T) {
 
 // TestBuildArgs_WithMultipleMCPServers tests multiple MCP servers configured together.
 func TestBuildArgs_WithMultipleMCPServers(t *testing.T) {
-	stdioType := mcp.ServerTypeStdio
 	options := &config.Options{
 		MCPServers: map[string]mcp.ServerConfig{
 			"local-server": &mcp.StdioServerConfig{
-				Type:    &stdioType,
+				Type:    mcp.ServerTypeStdio,
 				Command: "node",
 				Args:    []string{"server.js"},
 			},
@@ -754,11 +750,10 @@ func TestBuildArgs_WithMultipleMCPServers(t *testing.T) {
 
 // TestBuildArgs_WithMCPServersEnvVars tests MCP server with environment variables.
 func TestBuildArgs_WithMCPServersEnvVars(t *testing.T) {
-	serverType := mcp.ServerTypeStdio
 	options := &config.Options{
 		MCPServers: map[string]mcp.ServerConfig{
 			"api-server": &mcp.StdioServerConfig{
-				Type:    &serverType,
+				Type:    mcp.ServerTypeStdio,
 				Command: "node",
 				Args:    []string{"server.js"},
 				Env: map[string]string{

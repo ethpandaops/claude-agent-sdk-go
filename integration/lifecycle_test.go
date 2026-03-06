@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/require"
 	claudesdk "github.com/ethpandaops/claude-agent-sdk-go"
+	"github.com/stretchr/testify/require"
 )
 
 // TestQuery_CloseMidStream tests that closing the client mid-stream
@@ -21,8 +21,8 @@ func TestQuery_CloseMidStream(t *testing.T) {
 	client := claudesdk.NewClient()
 
 	err := client.Start(ctx,
-		claudesdk.WithModel("haiku"),
-		claudesdk.WithPermissionMode("acceptAll"),
+		claudesdk.WithModel("claude-haiku-4-5"),
+		claudesdk.WithPermissionMode("bypassPermissions"),
 		claudesdk.WithMaxTurns(5),
 	)
 	if err != nil {
@@ -89,8 +89,8 @@ func TestClient_ContextCancelDuringQuery(t *testing.T) {
 	defer client.Close()
 
 	err := client.Start(ctx,
-		claudesdk.WithModel("haiku"),
-		claudesdk.WithPermissionMode("acceptAll"),
+		claudesdk.WithModel("claude-haiku-4-5"),
+		claudesdk.WithPermissionMode("bypassPermissions"),
 		claudesdk.WithMaxTurns(5),
 	)
 	if err != nil {
@@ -151,8 +151,8 @@ func TestClient_RapidCloseReopen(t *testing.T) {
 			client := claudesdk.NewClient()
 
 			err := client.Start(ctx,
-				claudesdk.WithModel("haiku"),
-				claudesdk.WithPermissionMode("acceptAll"),
+				claudesdk.WithModel("claude-haiku-4-5"),
+				claudesdk.WithPermissionMode("bypassPermissions"),
 				claudesdk.WithMaxTurns(1),
 			)
 			if err != nil {

@@ -46,8 +46,8 @@ func WithSystemPromptPreset(preset *SystemPromptPreset) Option {
 	}
 }
 
-// WithModel specifies which Claude model or alias to use
-// (e.g., "claude-sonnet-4-6", "sonnet", or "sonnet[1m]").
+// WithModel specifies which Claude model ID to use
+// (e.g., "claude-sonnet-4-6").
 func WithModel(model string) Option {
 	return func(o *ClaudeAgentOptions) {
 		o.Model = model

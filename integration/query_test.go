@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/require"
 	claudesdk "github.com/ethpandaops/claude-agent-sdk-go"
+	"github.com/stretchr/testify/require"
 )
 
 // TestQueryIntegration tests end-to-end query execution.
@@ -21,7 +21,7 @@ func TestQueryIntegration(t *testing.T) {
 	receivedResult := false
 
 	for msg, err := range claudesdk.Query(ctx, "What is 2+2? Reply with just the number.",
-		claudesdk.WithModel("haiku"),
+		claudesdk.WithModel("claude-haiku-4-5"),
 		claudesdk.WithPermissionMode("acceptEdits"),
 		claudesdk.WithMaxTurns(1),
 	) {
@@ -67,7 +67,7 @@ func TestQueryWithLoggerIntegration(t *testing.T) {
 	messageCount := 0
 
 	for msg, err := range claudesdk.Query(ctx, "Say 'hello'",
-		claudesdk.WithModel("haiku"),
+		claudesdk.WithModel("claude-haiku-4-5"),
 		claudesdk.WithPermissionMode("acceptEdits"),
 		claudesdk.WithMaxTurns(1),
 	) {
@@ -89,7 +89,7 @@ func TestQueryContextTimeout(t *testing.T) {
 	defer cancel()
 
 	for _, err := range claudesdk.Query(ctx, "This is a test",
-		claudesdk.WithModel("haiku"),
+		claudesdk.WithModel("claude-haiku-4-5"),
 		claudesdk.WithPermissionMode("acceptEdits"),
 	) {
 		if err != nil {
@@ -150,8 +150,8 @@ func TestQuery_ContinuationOption(t *testing.T) {
 	defer cancel()
 
 	for _, err := range claudesdk.Query(ctx, "Remember the number 42.",
-		claudesdk.WithModel("haiku"),
-		claudesdk.WithPermissionMode("acceptAll"),
+		claudesdk.WithModel("claude-haiku-4-5"),
+		claudesdk.WithPermissionMode("bypassPermissions"),
 		claudesdk.WithMaxTurns(1),
 	) {
 		if err != nil {
@@ -163,8 +163,8 @@ func TestQuery_ContinuationOption(t *testing.T) {
 	receivedResult := false
 
 	for msg, err := range claudesdk.Query(ctx, "What number did I ask you to remember?",
-		claudesdk.WithModel("haiku"),
-		claudesdk.WithPermissionMode("acceptAll"),
+		claudesdk.WithModel("claude-haiku-4-5"),
+		claudesdk.WithPermissionMode("bypassPermissions"),
 		claudesdk.WithMaxTurns(1),
 		claudesdk.WithContinueConversation(true),
 	) {
@@ -191,8 +191,8 @@ func TestQuery_MaxBudgetUsdOption(t *testing.T) {
 	receivedResult := false
 
 	for msg, err := range claudesdk.Query(ctx, "Say 'budget test'",
-		claudesdk.WithModel("haiku"),
-		claudesdk.WithPermissionMode("acceptAll"),
+		claudesdk.WithModel("claude-haiku-4-5"),
+		claudesdk.WithPermissionMode("bypassPermissions"),
 		claudesdk.WithMaxTurns(1),
 		claudesdk.WithMaxBudgetUSD(maxBudget),
 	) {
@@ -228,8 +228,8 @@ func TestQuery_WithToolUse(t *testing.T) {
 	)
 
 	for msg, err := range claudesdk.Query(ctx, "Run the command 'echo hello world' using Bash",
-		claudesdk.WithModel("haiku"),
-		claudesdk.WithPermissionMode("acceptAll"),
+		claudesdk.WithModel("claude-haiku-4-5"),
+		claudesdk.WithPermissionMode("bypassPermissions"),
 		claudesdk.WithMaxTurns(3),
 	) {
 		if err != nil {
@@ -267,8 +267,8 @@ func TestQuery_WithAllowedAndDisallowedTools(t *testing.T) {
 	receivedResult := false
 
 	for msg, err := range claudesdk.Query(ctx, "Say 'tools configured'",
-		claudesdk.WithModel("haiku"),
-		claudesdk.WithPermissionMode("acceptAll"),
+		claudesdk.WithModel("claude-haiku-4-5"),
+		claudesdk.WithPermissionMode("bypassPermissions"),
 		claudesdk.WithMaxTurns(1),
 		claudesdk.WithAllowedTools("Read", "Grep"),
 		claudesdk.WithDisallowedTools("Bash"),
@@ -315,8 +315,8 @@ func TestQuery_WithSettingSources(t *testing.T) {
 			receivedResult := false
 
 			for msg, err := range claudesdk.Query(ctx, "Say 'settings test'",
-				claudesdk.WithModel("haiku"),
-				claudesdk.WithPermissionMode("acceptAll"),
+				claudesdk.WithModel("claude-haiku-4-5"),
+				claudesdk.WithPermissionMode("bypassPermissions"),
 				claudesdk.WithMaxTurns(1),
 				claudesdk.WithSettingSources(tt.sources...),
 			) {

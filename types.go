@@ -12,12 +12,12 @@ import (
 	"github.com/ethpandaops/claude-agent-sdk-go/internal/userinput"
 )
 
-// Re-export types from internal packages
+// Public SDK types
 
 // ===== Transport =====
 
 // Transport defines the interface for Claude CLI communication.
-// Re-exported from internal/config for public API access.
+// Exposed from the SDK's config package for public API access.
 // See transport.go for full documentation.
 // type Transport = config.Transport (defined in transport.go)
 
