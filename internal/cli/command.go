@@ -38,7 +38,7 @@ func BuildArgs(
 
 	// Add optional configuration flags
 	if options.PermissionMode != "" {
-		args = append(args, "--permission-mode", config.NormalizePermissionMode(options.PermissionMode))
+		args = append(args, "--permission-mode", options.PermissionMode)
 	}
 
 	if options.MaxTurns > 0 {

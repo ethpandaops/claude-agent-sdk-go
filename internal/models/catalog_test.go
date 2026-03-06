@@ -51,48 +51,23 @@ func TestByID(t *testing.T) {
 			wantID: modelIDClaudeOpus46,
 		},
 		{
-			name:   "alias match opus",
-			input:  "opus",
-			wantID: modelIDClaudeOpus46,
-		},
-		{
-			name:   "alias match sonnet",
-			input:  "sonnet",
-			wantID: modelIDClaudeSonnet46,
-		},
-		{
-			name:   "1m alias match",
-			input:  modelIDSonnet1M,
-			wantID: modelIDSonnet1M,
-		},
-		{
-			name:   "opus 1m alias match",
-			input:  modelIDOpus1M,
-			wantID: modelIDOpus1M,
-		},
-		{
-			name:   "alias match haiku",
-			input:  "haiku",
-			wantID: "claude-haiku-4-5",
-		},
-		{
-			name:   "full name with 1m suffix",
-			input:  modelIDClaudeSonnet46_1M,
-			wantID: modelIDSonnet1M,
-		},
-		{
-			name:   "full opus name with 1m suffix",
-			input:  modelIDClaudeOpus46_1M,
-			wantID: modelIDOpus1M,
-		},
-		{
-			name:   "prefix match dated ID",
-			input:  modelIDClaudeOpus46 + "-20260205",
-			wantID: modelIDClaudeOpus46,
+			name:   "exact haiku match",
+			input:  modelIDClaudeHaiku45,
+			wantID: modelIDClaudeHaiku45,
 		},
 		{
 			name:    "not found",
 			input:   "gpt-4",
+			wantNil: true,
+		},
+		{
+			name:    "short alias removed",
+			input:   "opus",
+			wantNil: true,
+		},
+		{
+			name:    "dated variant removed",
+			input:   modelIDClaudeOpus46 + "-20260205",
 			wantNil: true,
 		},
 		{
@@ -156,10 +131,9 @@ func TestCapabilities(t *testing.T) {
 		assert.Nil(t, caps)
 	})
 
-	t.Run("alias lookup", func(t *testing.T) {
+	t.Run("removed alias lookup", func(t *testing.T) {
 		caps := Capabilities("opus")
-		require.NotNil(t, caps)
-		assert.Len(t, caps, 4)
+		assert.Nil(t, caps)
 	})
 }
 

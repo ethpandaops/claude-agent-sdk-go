@@ -6,12 +6,12 @@ import (
 	"github.com/ethpandaops/claude-agent-sdk-go/internal/models"
 )
 
-// Re-export model types from internal/models.
+// Public model types.
 
 // Model holds metadata for a single Claude model.
 type Model = models.Model
 
-// ModelInfo describes a model or accepted CLI alias exposed by ListModels.
+// ModelInfo describes a model exposed by ListModels.
 type ModelInfo = models.Info
 
 // ReasoningEffortOption describes a selectable reasoning effort level.
@@ -67,8 +67,7 @@ func ListModelsResponse(_ context.Context) (*ModelListResponse, error) {
 	return &resp, nil
 }
 
-// ModelByID looks up a model by ID, alias, dated prefix, or supported static
-// variant like "sonnet[1m]".
+// ModelByID looks up a model by exact ID.
 // Returns nil if no model is found.
 func ModelByID(id string) *Model {
 	return models.ByID(id)

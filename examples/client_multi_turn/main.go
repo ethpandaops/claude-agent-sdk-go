@@ -387,7 +387,7 @@ func exampleWithOptions() {
 		claudesdk.WithSystemPrompt("You are a helpful coding assistant."),
 		claudesdk.WithPermissionMode("bypassPermissions"),
 		claudesdk.WithEnv(map[string]string{
-			"ANTHROPIC_MODEL": "claude-sonnet-4-5",
+			"ANTHROPIC_MODEL": "claude-sonnet-4-6",
 		}),
 	); err != nil {
 		fmt.Printf("Failed to connect: %v\n", err)

@@ -1,7 +1,10 @@
 // Package message provides message and content block types for Claude conversations.
 package message
 
-import "encoding/json"
+import (
+	"encoding/json"
+	"fmt"
+)
 
 // Block type constants.
 const (
@@ -68,7 +71,7 @@ type ToolResultBlock struct {
 func (b *ToolResultBlock) BlockType() string { return BlockTypeToolResult }
 
 // UnmarshalJSON implements json.Unmarshaler for ToolResultBlock.
-// Handles both string content and array content.
+// Claude CLI tool results may arrive as a plain string or structured blocks.
 func (b *ToolResultBlock) UnmarshalJSON(data []byte) error {
 	type Alias ToolResultBlock
 
@@ -155,12 +158,6 @@ func UnmarshalContentBlock(data []byte) (ContentBlock, error) {
 
 		return &block, nil
 	default:
-		// Return a generic text block for unknown types
-		var block TextBlock
-		if err := json.Unmarshal(data, &block); err != nil {
-			return nil, err
-		}
-
-		return &block, nil
+		return nil, fmt.Errorf("unknown content block type %q", typeHolder.Type)
 	}
 }

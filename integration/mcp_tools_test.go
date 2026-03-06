@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/require"
 	claudesdk "github.com/ethpandaops/claude-agent-sdk-go"
+	"github.com/stretchr/testify/require"
 )
 
 // TestMCPTools_Registration tests tool registration with the MCP server.
@@ -42,7 +42,7 @@ func TestMCPTools_Registration(t *testing.T) {
 	receivedResult := false
 
 	for msg, err := range claudesdk.Query(ctx, "Say hello",
-		claudesdk.WithModel("haiku"),
+		claudesdk.WithModel("claude-haiku-4-5"),
 		claudesdk.WithPermissionMode("bypassPermissions"),
 		claudesdk.WithMaxTurns(1),
 		claudesdk.WithSDKTools(echoTool),
@@ -100,7 +100,7 @@ func TestMCPTools_Execution(t *testing.T) {
 	)
 
 	for _, err := range claudesdk.Query(ctx, "Use the add_numbers tool to add 5 and 3",
-		claudesdk.WithModel("haiku"),
+		claudesdk.WithModel("claude-haiku-4-5"),
 		claudesdk.WithPermissionMode("bypassPermissions"),
 		claudesdk.WithMaxTurns(3),
 		claudesdk.WithSDKTools(calculatorTool),
@@ -143,7 +143,7 @@ func TestMCPTools_ReturnValue(t *testing.T) {
 
 	for msg, err := range claudesdk.Query(ctx,
 		"Use the get_magic_number tool and tell me what number it returns",
-		claudesdk.WithModel("haiku"),
+		claudesdk.WithModel("claude-haiku-4-5"),
 		claudesdk.WithPermissionMode("bypassPermissions"),
 		claudesdk.WithMaxTurns(3),
 		claudesdk.WithSDKTools(magicTool),

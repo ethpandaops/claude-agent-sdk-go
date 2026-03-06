@@ -53,7 +53,7 @@ func TestUserMessage_CreationWithBlocks(t *testing.T) {
 func TestAssistantMessage_WithTextContent(t *testing.T) {
 	msg := &AssistantMessage{
 		Type:  "assistant",
-		Model: "claude-3-5-sonnet-20241022",
+		Model: "claude-sonnet-4-6",
 		Content: []ContentBlock{
 			&TextBlock{Type: "text", Text: "Hello! How can I help you?"},
 		},
@@ -61,7 +61,7 @@ func TestAssistantMessage_WithTextContent(t *testing.T) {
 
 	require.Equal(t, "assistant", msg.Type)
 	require.Equal(t, "assistant", msg.MessageType())
-	require.Equal(t, "claude-3-5-sonnet-20241022", msg.Model)
+	require.Equal(t, "claude-sonnet-4-6", msg.Model)
 	require.Len(t, msg.Content, 1)
 
 	textBlock, ok := msg.Content[0].(*TextBlock)
@@ -73,7 +73,7 @@ func TestAssistantMessage_WithTextContent(t *testing.T) {
 func TestAssistantMessage_WithThinkingContent(t *testing.T) {
 	msg := &AssistantMessage{
 		Type:  "assistant",
-		Model: "claude-opus-4-5-20251101",
+		Model: "claude-opus-4-6",
 		Content: []ContentBlock{
 			&ThinkingBlock{
 				Type:      "thinking",
@@ -263,15 +263,15 @@ func TestClaudeAgentOptions_WithSessionContinuation(t *testing.T) {
 // TestClaudeAgentOptions_WithModel tests options with model specification.
 func TestClaudeAgentOptions_WithModel(t *testing.T) {
 	options := &ClaudeAgentOptions{
-		Model:         "claude-opus-4-5-20251101",
+		Model:         "claude-opus-4-6",
 		MaxTurns:      100,
 		Thinking:      ThinkingConfigEnabled{BudgetTokens: 8000},
-		FallbackModel: "claude-3-5-sonnet-20241022",
+		FallbackModel: "claude-sonnet-4-6",
 	}
 
-	require.Equal(t, "claude-opus-4-5-20251101", options.Model)
+	require.Equal(t, "claude-opus-4-6", options.Model)
 	require.Equal(t, 100, options.MaxTurns)
 	require.NotNil(t, options.Thinking)
 	require.Equal(t, ThinkingConfigEnabled{BudgetTokens: 8000}, options.Thinking)
-	require.Equal(t, "claude-3-5-sonnet-20241022", options.FallbackModel)
+	require.Equal(t, "claude-sonnet-4-6", options.FallbackModel)
 }

@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/require"
 	claudesdk "github.com/ethpandaops/claude-agent-sdk-go"
+	"github.com/stretchr/testify/require"
 )
 
 // TestDynamicControl_SetPermissionMode tests changing permission mode mid-session.
@@ -20,7 +20,7 @@ func TestDynamicControl_SetPermissionMode(t *testing.T) {
 	defer client.Close()
 
 	err := client.Start(ctx,
-		claudesdk.WithModel("haiku"),
+		claudesdk.WithModel("claude-haiku-4-5"),
 		claudesdk.WithPermissionMode("default"),
 		claudesdk.WithMaxTurns(2),
 	)
@@ -29,7 +29,7 @@ func TestDynamicControl_SetPermissionMode(t *testing.T) {
 		t.Fatalf("Connect failed: %v", err)
 	}
 
-	err = client.SetPermissionMode(ctx, "acceptAll")
+	err = client.SetPermissionMode(ctx, "bypassPermissions")
 	require.NoError(t, err, "SetPermissionMode should succeed")
 
 	err = client.Query(ctx, "Say 'permission changed'")
@@ -53,8 +53,8 @@ func TestDynamicControl_SetModel(t *testing.T) {
 	defer client.Close()
 
 	err := client.Start(ctx,
-		claudesdk.WithModel("haiku"),
-		claudesdk.WithPermissionMode("acceptAll"),
+		claudesdk.WithModel("claude-haiku-4-5"),
+		claudesdk.WithPermissionMode("bypassPermissions"),
 		claudesdk.WithMaxTurns(2),
 	)
 	if err != nil {
@@ -62,7 +62,7 @@ func TestDynamicControl_SetModel(t *testing.T) {
 		t.Fatalf("Connect failed: %v", err)
 	}
 
-	newModel := "claude-sonnet-4-5"
+	newModel := "claude-sonnet-4-6"
 	err = client.SetModel(ctx, &newModel)
 	require.NoError(t, err, "SetModel should succeed")
 
@@ -87,8 +87,8 @@ func TestDynamicControl_Interrupt(t *testing.T) {
 	defer client.Close()
 
 	err := client.Start(ctx,
-		claudesdk.WithModel("haiku"),
-		claudesdk.WithPermissionMode("acceptAll"),
+		claudesdk.WithModel("claude-haiku-4-5"),
+		claudesdk.WithPermissionMode("bypassPermissions"),
 		claudesdk.WithMaxTurns(5),
 	)
 	if err != nil {

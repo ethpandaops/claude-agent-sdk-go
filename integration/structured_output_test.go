@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/require"
 	claudesdk "github.com/ethpandaops/claude-agent-sdk-go"
+	"github.com/stretchr/testify/require"
 )
 
 // TestStructuredOutput_JSONSchema tests OutputFormat produces valid JSON.
@@ -22,8 +22,8 @@ func TestStructuredOutput_JSONSchema(t *testing.T) {
 	)
 
 	for msg, err := range claudesdk.Query(ctx, "What is 2+2? Provide structured output.",
-		claudesdk.WithModel("haiku"),
-		claudesdk.WithPermissionMode("acceptAll"),
+		claudesdk.WithModel("claude-haiku-4-5"),
+		claudesdk.WithPermissionMode("bypassPermissions"),
 		claudesdk.WithMaxTurns(2),
 		claudesdk.WithOutputFormat(map[string]any{
 			"type": "json_schema",
@@ -81,8 +81,8 @@ func TestStructuredOutput_RequiredFields(t *testing.T) {
 
 	for msg, err := range claudesdk.Query(ctx,
 		"Generate a fictional person with a name and age in structured format.",
-		claudesdk.WithModel("haiku"),
-		claudesdk.WithPermissionMode("acceptAll"),
+		claudesdk.WithModel("claude-haiku-4-5"),
+		claudesdk.WithPermissionMode("bypassPermissions"),
 		claudesdk.WithMaxTurns(2),
 		claudesdk.WithOutputFormat(map[string]any{
 			"type": "json_schema",
@@ -138,8 +138,8 @@ func TestStructuredOutput_WithEnum(t *testing.T) {
 
 	for msg, err := range claudesdk.Query(ctx,
 		"Pick a random color and intensity. Respond in structured format.",
-		claudesdk.WithModel("haiku"),
-		claudesdk.WithPermissionMode("acceptAll"),
+		claudesdk.WithModel("claude-haiku-4-5"),
+		claudesdk.WithPermissionMode("bypassPermissions"),
 		claudesdk.WithMaxTurns(2),
 		claudesdk.WithOutputFormat(map[string]any{
 			"type": "json_schema",
@@ -218,7 +218,7 @@ func TestStructuredOutput_WithTools(t *testing.T) {
 
 	for msg, err := range claudesdk.Query(ctx,
 		"Use the get_data tool to get a value, then provide the result in structured format.",
-		claudesdk.WithModel("haiku"),
+		claudesdk.WithModel("claude-haiku-4-5"),
 		claudesdk.WithPermissionMode("bypassPermissions"),
 		claudesdk.WithMaxTurns(3),
 		claudesdk.WithSDKTools(dataTool),

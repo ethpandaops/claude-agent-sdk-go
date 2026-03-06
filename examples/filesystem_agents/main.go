@@ -145,7 +145,7 @@ func main() {
 	fmt.Printf("Total messages: %d\n", len(messageTypes))
 
 	// Validate the results
-	// Note: types show as *message.X because claudesdk type-aliases from internal/message
+	// Note: reflected types show as *message.X because the public SDK exposes those message types directly.
 	hasInit := containsMessageType(messageTypes, "*message.SystemMessage")
 	hasAssistant := containsMessageType(messageTypes, "*message.AssistantMessage")
 	hasResult := containsMessageType(messageTypes, "*message.ResultMessage")

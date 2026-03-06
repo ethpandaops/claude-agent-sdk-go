@@ -7,43 +7,42 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestList_IncludesAliasAndConcreteEntries(t *testing.T) {
+func TestList_IncludesCurrentConcreteEntries(t *testing.T) {
 	t.Parallel()
 
 	models := List()
 	require.NotEmpty(t, models)
+	require.Len(t, models, 3)
 
 	var (
-		defaultModel Info
-		sonnet1M     Info
-		opus46       Info
+		haiku45  Info
+		sonnet46 Info
+		opus46   Info
 	)
 
 	for _, model := range models {
 		switch model.ID {
-		case modelIDDefault:
-			defaultModel = model
-		case modelIDSonnet1M:
-			sonnet1M = model
+		case modelIDClaudeHaiku45:
+			haiku45 = model
+		case modelIDClaudeSonnet46:
+			sonnet46 = model
 		case modelIDClaudeOpus46:
 			opus46 = model
 		}
 	}
 
-	require.Equal(t, modelIDDefault, defaultModel.ID)
-	assert.True(t, defaultModel.IsDefault)
-	assert.Equal(t, "static-alias", defaultModel.Metadata["source"])
+	require.Equal(t, modelIDClaudeHaiku45, haiku45.ID)
+	assert.False(t, haiku45.IsDefault)
+	assert.Equal(t, 200000, haiku45.Metadata["modelContextWindow"])
+	assert.Equal(t, 64_000, haiku45.Metadata["maxOutputTokens"])
 
-	require.Equal(t, modelIDSonnet1M, sonnet1M.ID)
-	assert.Equal(t, 1000000, sonnet1M.Metadata["modelContextWindow"])
-	assert.Equal(t, modelIDClaudeSonnet46, sonnet1M.Metadata["resolvesTo"])
-	assert.Equal(t, "medium", sonnet1M.DefaultReasoningEffort)
-	require.Len(t, sonnet1M.SupportedReasoningEfforts, 3)
+	require.Equal(t, modelIDClaudeSonnet46, sonnet46.ID)
+	assert.Equal(t, "medium", sonnet46.DefaultReasoningEffort)
+	require.Len(t, sonnet46.SupportedReasoningEfforts, 3)
 
 	require.Equal(t, modelIDClaudeOpus46, opus46.ID)
 	assert.Equal(t, 200000, opus46.Metadata["modelContextWindow"])
 	assert.Equal(t, 128000, opus46.Metadata["maxOutputTokens"])
-	assert.Equal(t, []string{"opus"}, opus46.Metadata["aliases"])
 }
 
 func TestResponse_Metadata(t *testing.T) {

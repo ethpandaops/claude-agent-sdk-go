@@ -40,6 +40,12 @@ const (
 
 	// mcpStatusTimeout is the timeout for mcp_status control requests.
 	mcpStatusTimeout = 10 * time.Second
+
+	// mcpControlTimeout is the timeout for MCP control requests.
+	mcpControlTimeout = 10 * time.Second
+
+	// stopTaskTimeout is the timeout for stop_task control requests.
+	stopTaskTimeout = 10 * time.Second
 )
 
 // Client implements the interactive client interface.
@@ -563,17 +569,15 @@ func (c *Client) SetPermissionMode(ctx context.Context, mode string) error {
 		return errors.ErrClientNotConnected
 	}
 
-	normalizedMode := config.NormalizePermissionMode(mode)
-
-	c.log.Info("Setting permission mode", "mode", normalizedMode)
+	c.log.Info("Setting permission mode", "mode", mode)
 
 	payload := map[string]any{
-		"mode": normalizedMode,
+		"mode": mode,
 	}
 
 	_, err := c.controller.SendRequest(ctx, "set_permission_mode", payload, setPermissionModeTimeout)
 	if err != nil {
-		return fmt.Errorf("set permission mode to %q: %w", normalizedMode, err)
+		return fmt.Errorf("set permission mode to %q: %w", mode, err)
 	}
 
 	return nil
@@ -639,14 +643,116 @@ func (c *Client) GetMCPStatus(ctx context.Context) (*mcp.Status, error) {
 
 	if session != nil {
 		for _, name := range session.GetSDKMCPServerNames() {
+			server, ok := session.GetSDKMCPServer(name)
+			if !ok {
+				continue
+			}
+
+			tools := server.ListTools()
+			toolInfos := make([]mcp.ToolInfo, 0, len(tools))
+
+			for _, tool := range tools {
+				info := mcp.ToolInfo{}
+				if toolName, ok := tool["name"].(string); ok {
+					info.Name = toolName
+				}
+
+				if description, ok := tool["description"].(string); ok {
+					info.Description = description
+				}
+
+				if annotations, ok := tool["annotations"].(map[string]any); ok {
+					toolAnnotations := &mcp.ToolAnnotations{}
+					if v, ok := annotations["readOnly"].(bool); ok {
+						toolAnnotations.ReadOnly = v
+					}
+
+					if v, ok := annotations["destructive"].(bool); ok {
+						toolAnnotations.Destructive = v
+					}
+
+					if v, ok := annotations["openWorld"].(bool); ok {
+						toolAnnotations.OpenWorld = v
+					}
+
+					info.Annotations = toolAnnotations
+				}
+
+				toolInfos = append(toolInfos, info)
+			}
+
 			status.MCPServers = append(status.MCPServers, mcp.ServerStatus{
 				Name:   name,
-				Status: "connected",
+				Status: mcp.ServerConnectionStatusConnected,
+				ServerInfo: &mcp.ServerInfo{
+					Name:    server.Name(),
+					Version: server.Version(),
+				},
+				Config: &mcp.ServerStatusConfig{
+					Type: string(mcp.ServerTypeSDK),
+					Name: name,
+				},
+				Tools: toolInfos,
 			})
 		}
 	}
 
 	return &status, nil
+}
+
+// ReconnectMCPServer reconnects a disconnected or failed MCP server.
+func (c *Client) ReconnectMCPServer(ctx context.Context, serverName string) error {
+	if !c.isConnected() {
+		return errors.ErrClientNotConnected
+	}
+
+	payload := map[string]any{
+		"serverName": serverName,
+	}
+
+	_, err := c.controller.SendRequest(ctx, "mcp_reconnect", payload, mcpControlTimeout)
+	if err != nil {
+		return fmt.Errorf("reconnect mcp server %q: %w", serverName, err)
+	}
+
+	return nil
+}
+
+// ToggleMCPServer enables or disables an MCP server.
+func (c *Client) ToggleMCPServer(ctx context.Context, serverName string, enabled bool) error {
+	if !c.isConnected() {
+		return errors.ErrClientNotConnected
+	}
+
+	payload := map[string]any{
+		"serverName": serverName,
+		"enabled":    enabled,
+	}
+
+	_, err := c.controller.SendRequest(ctx, "mcp_toggle", payload, mcpControlTimeout)
+	if err != nil {
+		return fmt.Errorf("toggle mcp server %q: %w", serverName, err)
+	}
+
+	return nil
+}
+
+// StopTask stops a running task by task ID.
+func (c *Client) StopTask(ctx context.Context, taskID string) error {
+	if !c.isConnected() {
+		return errors.ErrClientNotConnected
+	}
+
+	payload := map[string]any{
+		"task_id": taskID,
+	}
+
+	_, err := c.controller.SendRequest(ctx, "stop_task", payload, stopTaskTimeout)
+	if err != nil {
+		return fmt.Errorf("stop task %q: %w", taskID, err)
+	}
+
+	return nil
 }
 
 // GetServerInfo returns server initialization info including available commands.

@@ -293,6 +293,31 @@ func TestSession_HandleCanUseTool_OnUserInputHasPriority(t *testing.T) {
 	require.False(t, canUseToolCalled, "CanUseTool should not run for AskUserQuestion when OnUserInput is set")
 }
 
+func TestSessionParseHookInputIncludesSubagentContext(t *testing.T) {
+	log := slog.Default()
+	session := NewSession(log, nil, &config.Options{})
+
+	input, err := session.parseHookInput(map[string]any{
+		"hook_event_name": "PreToolUse",
+		"session_id":      "session-1",
+		"transcript_path": "/tmp/transcript",
+		"cwd":             "/tmp",
+		"tool_name":       "Bash",
+		"tool_input":      map[string]any{"command": "echo hello"},
+		"tool_use_id":     "tool-1",
+		"agent_id":        "agent-42",
+		"agent_type":      "researcher",
+	})
+	require.NoError(t, err)
+
+	preToolUse, ok := input.(*hook.PreToolUseInput)
+	require.True(t, ok)
+	require.NotNil(t, preToolUse.AgentID)
+	require.Equal(t, "agent-42", *preToolUse.AgentID)
+	require.NotNil(t, preToolUse.AgentType)
+	require.Equal(t, "researcher", *preToolUse.AgentType)
+}
+
 func TestSession_HandleCanUseTool_NonAskUserQuestionUsesCanUseTool(t *testing.T) {
 	log := slog.Default()
 

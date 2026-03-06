@@ -31,7 +31,7 @@ var (
 
 // StdioServerConfig configures a stdio-based MCP server.
 type StdioServerConfig struct {
-	Type    *ServerType       `json:"type,omitempty"` // Optional for backwards compatibility
+	Type    ServerType        `json:"type"` // "stdio"
 	Command string            `json:"command"`
 	Args    []string          `json:"args,omitempty"`
 	Env     map[string]string `json:"env,omitempty"`
@@ -39,11 +39,7 @@ type StdioServerConfig struct {
 
 // GetType implements ServerConfig.
 func (m *StdioServerConfig) GetType() ServerType {
-	if m.Type != nil {
-		return *m.Type
-	}
-
-	return ServerTypeStdio
+	return m.Type
 }
 
 // SSEServerConfig configures a Server-Sent Events MCP server.

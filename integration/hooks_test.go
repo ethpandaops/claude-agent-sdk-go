@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/require"
 	claudesdk "github.com/ethpandaops/claude-agent-sdk-go"
+	"github.com/stretchr/testify/require"
 )
 
 // TestHooks_PreToolUse tests hook invoked before tool execution.
@@ -22,8 +22,8 @@ func TestHooks_PreToolUse(t *testing.T) {
 	timeout := 30.0
 
 	for _, err := range claudesdk.Query(ctx, "List files in the current directory using ls",
-		claudesdk.WithModel("haiku"),
-		claudesdk.WithPermissionMode("acceptAll"),
+		claudesdk.WithModel("claude-haiku-4-5"),
+		claudesdk.WithPermissionMode("bypassPermissions"),
 		claudesdk.WithMaxTurns(3),
 		claudesdk.WithHooks(map[claudesdk.HookEvent][]*claudesdk.HookMatcher{
 			claudesdk.HookEventPreToolUse: {{
@@ -68,8 +68,8 @@ func TestHooks_PostToolUse(t *testing.T) {
 	timeout := 30.0
 
 	for _, err := range claudesdk.Query(ctx, "Run 'echo hello' command",
-		claudesdk.WithModel("haiku"),
-		claudesdk.WithPermissionMode("acceptAll"),
+		claudesdk.WithModel("claude-haiku-4-5"),
+		claudesdk.WithPermissionMode("bypassPermissions"),
 		claudesdk.WithMaxTurns(3),
 		claudesdk.WithHooks(map[claudesdk.HookEvent][]*claudesdk.HookMatcher{
 			claudesdk.HookEventPostToolUse: {{
@@ -115,8 +115,8 @@ func TestHooks_BlockTool(t *testing.T) {
 	timeout := 30.0
 
 	for _, err := range claudesdk.Query(ctx, "Run 'echo blocked' command",
-		claudesdk.WithModel("haiku"),
-		claudesdk.WithPermissionMode("acceptAll"),
+		claudesdk.WithModel("claude-haiku-4-5"),
+		claudesdk.WithPermissionMode("bypassPermissions"),
 		claudesdk.WithMaxTurns(3),
 		claudesdk.WithHooks(map[claudesdk.HookEvent][]*claudesdk.HookMatcher{
 			claudesdk.HookEventPreToolUse: {{
@@ -168,8 +168,8 @@ func TestHooks_WithAdditionalContext(t *testing.T) {
 	timeout := 30.0
 
 	for _, err := range claudesdk.Query(ctx, "Run 'echo test' command",
-		claudesdk.WithModel("haiku"),
-		claudesdk.WithPermissionMode("acceptAll"),
+		claudesdk.WithModel("claude-haiku-4-5"),
+		claudesdk.WithPermissionMode("bypassPermissions"),
 		claudesdk.WithMaxTurns(3),
 		claudesdk.WithHooks(map[claudesdk.HookEvent][]*claudesdk.HookMatcher{
 			claudesdk.HookEventPostToolUse: {{

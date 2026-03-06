@@ -1,6 +1,6 @@
 package claudesdk
 
-// Hook types are re-exported from types.go for convenience.
+// Hook types are exposed via types.go for convenience.
 // See types.go for documentation on hook-related types including:
 // - HookEvent, HookInput, HookCallback, HookMatcher
 // - All hook event constants (HookEventPreToolUse, etc.)

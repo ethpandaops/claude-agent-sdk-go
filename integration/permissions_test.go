@@ -11,8 +11,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/require"
 	claudesdk "github.com/ethpandaops/claude-agent-sdk-go"
+	"github.com/stretchr/testify/require"
 )
 
 // TestToolPermissions_AllowExplicit tests CanUseTool returning PermissionResultAllow.
@@ -28,7 +28,7 @@ func TestToolPermissions_AllowExplicit(t *testing.T) {
 
 	for msg, err := range claudesdk.Query(ctx,
 		"Use Bash to create a file named canuse_allow.txt in the current directory.",
-		claudesdk.WithModel("haiku"),
+		claudesdk.WithModel("claude-haiku-4-5"),
 		claudesdk.WithCwd(tmpDir),
 		claudesdk.WithPermissionMode("default"),
 		claudesdk.WithMaxTurns(3),
@@ -74,7 +74,7 @@ func TestToolPermissions_Deny(t *testing.T) {
 
 	for _, err := range claudesdk.Query(ctx,
 		"Use Bash to create a file named canuse_deny.txt in the current directory.",
-		claudesdk.WithModel("haiku"),
+		claudesdk.WithModel("claude-haiku-4-5"),
 		claudesdk.WithCwd(tmpDir),
 		claudesdk.WithPermissionMode("default"),
 		claudesdk.WithMaxTurns(3),
@@ -119,7 +119,7 @@ func TestToolPermissions_ModifyInput(t *testing.T) {
 
 	for _, err := range claudesdk.Query(ctx,
 		"Use Bash to run: echo original > input_mod_test.txt",
-		claudesdk.WithModel("haiku"),
+		claudesdk.WithModel("claude-haiku-4-5"),
 		claudesdk.WithCwd(tmpDir),
 		claudesdk.WithPermissionMode("default"),
 		claudesdk.WithMaxTurns(3),
@@ -235,7 +235,7 @@ func TestMCPTools_PermissionEnforcement(t *testing.T) {
 
 		for _, err := range claudesdk.Query(ctx,
 			"Use the echo tool to echo 'test'",
-			claudesdk.WithModel("haiku"),
+			claudesdk.WithModel("claude-haiku-4-5"),
 			claudesdk.WithPermissionMode("bypassPermissions"),
 			claudesdk.WithMaxTurns(5),
 			claudesdk.WithSDKTools(echoTool, greetTool),
@@ -261,7 +261,7 @@ func TestMCPTools_PermissionEnforcement(t *testing.T) {
 
 		for _, err := range claudesdk.Query(ctx,
 			"Use the greet tool to greet 'Alice'",
-			claudesdk.WithModel("haiku"),
+			claudesdk.WithModel("claude-haiku-4-5"),
 			claudesdk.WithPermissionMode("bypassPermissions"),
 			claudesdk.WithMaxTurns(5),
 			claudesdk.WithSDKTools(echoTool, greetTool),

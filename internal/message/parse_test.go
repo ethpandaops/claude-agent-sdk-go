@@ -1,6 +1,7 @@
 package message
 
 import (
+	"encoding/json"
 	"errors"
 	"log/slog"
 	"testing"
@@ -31,11 +32,11 @@ func TestParseAssistantMessage(t *testing.T) {
 					"content": []any{
 						map[string]any{"type": "text", "text": "hello"},
 					},
-					"model": "claude-sonnet-4-5-20250514",
+					"model": "claude-sonnet-4-6",
 				},
 			},
 			wantError:      false,
-			wantModel:      "claude-sonnet-4-5-20250514",
+			wantModel:      "claude-sonnet-4-6",
 			wantContentLen: 1,
 		},
 		{
@@ -44,13 +45,13 @@ func TestParseAssistantMessage(t *testing.T) {
 				"type": "assistant",
 				"message": map[string]any{
 					"content": []any{},
-					"model":   "claude-sonnet-4-5-20250514",
+					"model":   "claude-sonnet-4-6",
 				},
 				"error": "authentication_failed",
 			},
 			wantError:      true,
 			wantErrorValue: AssistantMessageErrorAuthFailed,
-			wantModel:      "claude-sonnet-4-5-20250514",
+			wantModel:      "claude-sonnet-4-6",
 			wantContentLen: 0,
 		},
 		{
@@ -59,13 +60,13 @@ func TestParseAssistantMessage(t *testing.T) {
 				"type": "assistant",
 				"message": map[string]any{
 					"content": []any{},
-					"model":   "claude-sonnet-4-5-20250514",
+					"model":   "claude-sonnet-4-6",
 				},
 				"error": "rate_limit",
 			},
 			wantError:      true,
 			wantErrorValue: AssistantMessageErrorRateLimit,
-			wantModel:      "claude-sonnet-4-5-20250514",
+			wantModel:      "claude-sonnet-4-6",
 			wantContentLen: 0,
 		},
 		{
@@ -74,13 +75,13 @@ func TestParseAssistantMessage(t *testing.T) {
 				"type": "assistant",
 				"message": map[string]any{
 					"content": []any{},
-					"model":   "claude-sonnet-4-5-20250514",
+					"model":   "claude-sonnet-4-6",
 				},
 				"error": "unknown",
 			},
 			wantError:      true,
 			wantErrorValue: AssistantMessageErrorUnknown,
-			wantModel:      "claude-sonnet-4-5-20250514",
+			wantModel:      "claude-sonnet-4-6",
 			wantContentLen: 0,
 		},
 		{
@@ -91,7 +92,7 @@ func TestParseAssistantMessage(t *testing.T) {
 					"content": []any{
 						map[string]any{"type": "text", "text": "partial response"},
 					},
-					"model": "claude-sonnet-4-5-20250514",
+					"model": "claude-sonnet-4-6",
 					"error": "should_be_ignored",
 				},
 				"error":              "billing_error",
@@ -99,7 +100,7 @@ func TestParseAssistantMessage(t *testing.T) {
 			},
 			wantError:      true,
 			wantErrorValue: AssistantMessageErrorBilling,
-			wantModel:      "claude-sonnet-4-5-20250514",
+			wantModel:      "claude-sonnet-4-6",
 			wantContentLen: 1,
 			wantToolUseID:  new("tool-123"),
 		},
@@ -212,8 +213,6 @@ func TestParseUnknownMessageTypes(t *testing.T) {
 func TestParseUnknownContentBlockType(t *testing.T) {
 	logger := slog.Default()
 
-	// An assistant message containing an unknown content block type
-	// should parse successfully with the unknown block falling back to TextBlock.
 	data := map[string]any{
 		"type": "assistant",
 		"message": map[string]any{
@@ -227,24 +226,120 @@ func TestParseUnknownContentBlockType(t *testing.T) {
 					"text": "normal text",
 				},
 			},
-			"model": "claude-sonnet-4-5-20250514",
+			"model": "claude-sonnet-4-6",
 		},
 	}
 
 	msg, err := Parse(logger, data)
+	require.Error(t, err)
+	require.Nil(t, msg)
+	require.Contains(t, err.Error(), `unknown content block type "some_new_block_type"`)
+}
+
+func TestUserMessageContent_UnmarshalString(t *testing.T) {
+	var content UserMessageContent
+
+	err := json.Unmarshal([]byte(`"ping"`), &content)
+	require.NoError(t, err)
+	require.True(t, content.IsString())
+	require.Equal(t, "ping", content.String())
+	require.Len(t, content.Blocks(), 1)
+}
+
+func TestToolResultBlock_UnmarshalStringContent(t *testing.T) {
+	var block ToolResultBlock
+
+	err := json.Unmarshal([]byte(`{
+		"type": "tool_result",
+		"tool_use_id": "toolu_123",
+		"content": "Structured output provided successfully"
+	}`), &block)
+	require.NoError(t, err)
+	require.Equal(t, "toolu_123", block.ToolUseID)
+	require.Len(t, block.Content, 1)
+
+	textBlock, ok := block.Content[0].(*TextBlock)
+	require.True(t, ok)
+	require.Equal(t, "Structured output provided successfully", textBlock.Text)
+}
+
+func TestParseTaskSystemMessages(t *testing.T) {
+	logger := slog.Default()
+
+	taskStarted, err := Parse(logger, map[string]any{
+		"type":        "system",
+		"subtype":     "task_started",
+		"task_id":     "task-1",
+		"description": "Run a task",
+		"uuid":        "msg-1",
+		"session_id":  "session-1",
+		"task_type":   "research",
+	})
 	require.NoError(t, err)
 
-	assistant, ok := msg.(*AssistantMessage)
-	require.True(t, ok, "expected *AssistantMessage")
-	require.Len(t, assistant.Content, 2)
+	started, ok := taskStarted.(*TaskStartedMessage)
+	require.True(t, ok)
+	require.Equal(t, "task-1", started.TaskID)
+	require.NotNil(t, started.TaskType)
+	require.Equal(t, "research", *started.TaskType)
 
-	// Unknown block type falls back to TextBlock
-	fallback, ok := assistant.Content[0].(*TextBlock)
-	require.True(t, ok, "expected unknown block to fall back to *TextBlock")
-	require.Equal(t, "fallback text content", fallback.Text)
+	taskProgress, err := Parse(logger, map[string]any{
+		"type":           "system",
+		"subtype":        "task_progress",
+		"task_id":        "task-1",
+		"description":    "Still running",
+		"uuid":           "msg-2",
+		"session_id":     "session-1",
+		"last_tool_name": "Read",
+		"usage": map[string]any{
+			"total_tokens": 12,
+			"tool_uses":    3,
+			"duration_ms":  44,
+		},
+	})
+	require.NoError(t, err)
 
-	// Normal text block still works
-	textBlock, ok := assistant.Content[1].(*TextBlock)
-	require.True(t, ok, "expected *TextBlock")
-	require.Equal(t, "normal text", textBlock.Text)
+	progress, ok := taskProgress.(*TaskProgressMessage)
+	require.True(t, ok)
+	require.Equal(t, 12, progress.Usage.TotalTokens)
+	require.NotNil(t, progress.LastToolName)
+	require.Equal(t, "Read", *progress.LastToolName)
+
+	taskNotification, err := Parse(logger, map[string]any{
+		"type":        "system",
+		"subtype":     "task_notification",
+		"task_id":     "task-1",
+		"status":      "stopped",
+		"output_file": "/tmp/task.txt",
+		"summary":     "Stopped by user",
+		"uuid":        "msg-3",
+		"session_id":  "session-1",
+	})
+	require.NoError(t, err)
+
+	notification, ok := taskNotification.(*TaskNotificationMessage)
+	require.True(t, ok)
+	require.Equal(t, TaskNotificationStatusStopped, notification.Status)
+	require.Nil(t, notification.Usage)
+}
+
+func TestParseResultMessageStopReason(t *testing.T) {
+	logger := slog.Default()
+
+	msg, err := Parse(logger, map[string]any{
+		"type":            "result",
+		"subtype":         "success",
+		"duration_ms":     10,
+		"duration_api_ms": 5,
+		"is_error":        false,
+		"num_turns":       1,
+		"session_id":      "session-1",
+		"stop_reason":     "end_turn",
+	})
+	require.NoError(t, err)
+
+	result, ok := msg.(*ResultMessage)
+	require.True(t, ok)
+	require.NotNil(t, result.StopReason)
+	require.Equal(t, "end_turn", *result.StopReason)
 }

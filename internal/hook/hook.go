@@ -83,6 +83,8 @@ type PreToolUseInput struct {
 	ToolName      string         `json:"tool_name"`
 	ToolInput     map[string]any `json:"tool_input"`
 	ToolUseID     string         `json:"tool_use_id"`
+	AgentID       *string        `json:"agent_id,omitempty"`
+	AgentType     *string        `json:"agent_type,omitempty"`
 }
 
 // GetHookEventName implements Input.
@@ -98,6 +100,8 @@ type PostToolUseInput struct {
 	ToolInput     map[string]any `json:"tool_input"`
 	ToolUseID     string         `json:"tool_use_id"`
 	ToolResponse  any            `json:"tool_response"`
+	AgentID       *string        `json:"agent_id,omitempty"`
+	AgentType     *string        `json:"agent_type,omitempty"`
 }
 
 // GetHookEventName implements Input.
@@ -155,6 +159,8 @@ type PostToolUseFailureInput struct {
 	ToolUseID     string         `json:"tool_use_id"`
 	Error         string         `json:"error"`
 	IsInterrupt   *bool          `json:"is_interrupt,omitempty"`
+	AgentID       *string        `json:"agent_id,omitempty"`
+	AgentType     *string        `json:"agent_type,omitempty"`
 }
 
 // GetHookEventName implements Input.
@@ -196,6 +202,8 @@ type PermissionRequestInput struct {
 	ToolName              string         `json:"tool_name"`
 	ToolInput             map[string]any `json:"tool_input"`
 	PermissionSuggestions []any          `json:"permission_suggestions"`
+	AgentID               *string        `json:"agent_id,omitempty"`
+	AgentType             *string        `json:"agent_type,omitempty"`
 }
 
 // GetHookEventName implements Input.

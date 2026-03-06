@@ -12,12 +12,12 @@ import (
 	"github.com/ethpandaops/claude-agent-sdk-go/internal/userinput"
 )
 
-// Re-export types from internal packages
+// Public SDK types
 
 // ===== Transport =====
 
 // Transport defines the interface for Claude CLI communication.
-// Re-exported from internal/config for public API access.
+// Exposed from the SDK's config package for public API access.
 // See transport.go for full documentation.
 // type Transport = config.Transport (defined in transport.go)
 
@@ -131,6 +131,30 @@ const (
 
 // SystemMessage represents a system message.
 type SystemMessage = message.SystemMessage
+
+// TaskUsage contains task progress usage statistics.
+type TaskUsage = message.TaskUsage
+
+// TaskNotificationStatus represents the final status of a task.
+type TaskNotificationStatus = message.TaskNotificationStatus
+
+const (
+	// TaskNotificationStatusCompleted indicates the task finished successfully.
+	TaskNotificationStatusCompleted = message.TaskNotificationStatusCompleted
+	// TaskNotificationStatusFailed indicates the task failed.
+	TaskNotificationStatusFailed = message.TaskNotificationStatusFailed
+	// TaskNotificationStatusStopped indicates the task was stopped.
+	TaskNotificationStatusStopped = message.TaskNotificationStatusStopped
+)
+
+// TaskStartedMessage is emitted when a task starts.
+type TaskStartedMessage = message.TaskStartedMessage
+
+// TaskProgressMessage is emitted while a task is running.
+type TaskProgressMessage = message.TaskProgressMessage
+
+// TaskNotificationMessage is emitted when a task completes, fails, or stops.
+type TaskNotificationMessage = message.TaskNotificationMessage
 
 // ResultMessage represents the final result of a query.
 type ResultMessage = message.ResultMessage
@@ -403,6 +427,34 @@ type SdkMcpServerInstance = mcp.ServerInstance
 
 // MCPServerStatus represents the connection status of a single MCP server.
 type MCPServerStatus = mcp.ServerStatus
+
+// MCPServerConnectionStatus represents the connection state of an MCP server.
+type MCPServerConnectionStatus = mcp.ServerConnectionStatus
+
+const (
+	// MCPServerConnectionStatusConnected indicates the server is connected.
+	MCPServerConnectionStatusConnected = mcp.ServerConnectionStatusConnected
+	// MCPServerConnectionStatusFailed indicates the server failed to connect.
+	MCPServerConnectionStatusFailed = mcp.ServerConnectionStatusFailed
+	// MCPServerConnectionStatusNeedsAuth indicates the server requires authentication.
+	MCPServerConnectionStatusNeedsAuth = mcp.ServerConnectionStatusNeedsAuth
+	// MCPServerConnectionStatusPending indicates the server is still connecting.
+	MCPServerConnectionStatusPending = mcp.ServerConnectionStatusPending
+	// MCPServerConnectionStatusDisabled indicates the server is disabled.
+	MCPServerConnectionStatusDisabled = mcp.ServerConnectionStatusDisabled
+)
+
+// MCPToolAnnotations describes MCP tool capability metadata.
+type MCPToolAnnotations = mcp.ToolAnnotations
+
+// MCPToolInfo describes an MCP tool exposed by a server.
+type MCPToolInfo = mcp.ToolInfo
+
+// MCPServerInfo describes server information returned from initialize.
+type MCPServerInfo = mcp.ServerInfo
+
+// MCPServerStatusConfig captures the serializable server config included in status responses.
+type MCPServerStatusConfig = mcp.ServerStatusConfig
 
 // MCPStatus represents the connection status of all configured MCP servers.
 type MCPStatus = mcp.Status

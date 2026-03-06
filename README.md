@@ -206,12 +206,7 @@ See [types.go](./types.go) for complete type definitions.
 `Models()`, `ModelByID()`, and `ListModels(ctx)` use a static SDK catalog, not a
 live Claude CLI model list for the logged-in user.
 
-The catalog includes current concrete models and accepted static aliases such as
-`default`, `opusplan`, `sonnet[1m]`, and `opus[1m]`.
-
-Dynamic aliases like `default` and `opusplan` are surfaced in `ListModels(ctx)`
-with metadata explaining that they resolve at runtime rather than naming a
-single concrete model in every context.
+The catalog includes the current concrete model IDs exposed by this SDK.
 
 ## Error Handling
 
