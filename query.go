@@ -327,6 +327,12 @@ func Query(
 					return
 				}
 
+				if _, isResult := parsed.(*message.ResultMessage); isResult {
+					log.Debug("Terminal result received, stopping query iteration")
+
+					return
+				}
+
 			case <-controller.Done():
 				// Controller stopped (possibly due to transport error)
 				log.Debug("Controller stopped")
@@ -628,6 +634,12 @@ func QueryStream(
 
 				if !yield(parsed, nil) {
 					log.Debug("Yield returned false, stopping iteration")
+
+					return
+				}
+
+				if _, isResult := parsed.(*message.ResultMessage); isResult {
+					log.Debug("Terminal result received, stopping streaming query iteration")
 
 					return
 				}

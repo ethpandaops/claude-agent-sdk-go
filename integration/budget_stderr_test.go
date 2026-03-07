@@ -5,6 +5,7 @@ package integration
 import (
 	"context"
 	"errors"
+	"sync"
 	"testing"
 	"time"
 
@@ -17,14 +18,19 @@ func TestStderrCallback_ReceivesOutput(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 
-	var stderrLines []string
+	var (
+		stderrLines []string
+		stderrMu    sync.Mutex
+	)
 
 	for _, err := range claudesdk.Query(ctx, "Say 'hello'",
 		claudesdk.WithModel("claude-haiku-4-5"),
 		claudesdk.WithPermissionMode("bypassPermissions"),
 		claudesdk.WithMaxTurns(1),
 		claudesdk.WithStderr(func(line string) {
+			stderrMu.Lock()
 			stderrLines = append(stderrLines, line)
+			stderrMu.Unlock()
 		}),
 	) {
 		if err != nil {
@@ -33,7 +39,11 @@ func TestStderrCallback_ReceivesOutput(t *testing.T) {
 		}
 	}
 
-	t.Logf("Received %d stderr lines", len(stderrLines))
+	stderrMu.Lock()
+	lineCount := len(stderrLines)
+	stderrMu.Unlock()
+
+	t.Logf("Received %d stderr lines", lineCount)
 }
 
 // TestStderrCallback_CapturesDebugInfo tests debug flag produces stderr output.
@@ -41,14 +51,19 @@ func TestStderrCallback_CapturesDebugInfo(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 
-	var stderrLines []string
+	var (
+		stderrLines []string
+		stderrMu    sync.Mutex
+	)
 
 	for _, err := range claudesdk.Query(ctx, "Say 'debug test'",
 		claudesdk.WithModel("claude-haiku-4-5"),
 		claudesdk.WithPermissionMode("bypassPermissions"),
 		claudesdk.WithMaxTurns(1),
 		claudesdk.WithStderr(func(line string) {
+			stderrMu.Lock()
 			stderrLines = append(stderrLines, line)
+			stderrMu.Unlock()
 		}),
 		claudesdk.WithExtraArgs(map[string]*string{
 			"debug-to-stderr": nil,
@@ -60,10 +75,18 @@ func TestStderrCallback_CapturesDebugInfo(t *testing.T) {
 		}
 	}
 
-	t.Logf("Received %d stderr lines with debug enabled", len(stderrLines))
+	stderrMu.Lock()
+	lineCount := len(stderrLines)
+	firstLine := ""
+	if lineCount > 0 {
+		firstLine = stderrLines[0]
+	}
+	stderrMu.Unlock()
 
-	if len(stderrLines) > 0 {
-		t.Logf("First line: %s", stderrLines[0])
+	t.Logf("Received %d stderr lines with debug enabled", lineCount)
+
+	if lineCount > 0 {
+		t.Logf("First line: %s", firstLine)
 	}
 }
 
