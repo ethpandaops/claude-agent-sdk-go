@@ -720,11 +720,16 @@ func (s *Session) HandleCanUseTool(
 		return result, nil
 	}
 
+	updatedInput := input
+	if updatedInput == nil {
+		updatedInput = make(map[string]any)
+	}
+
 	// If no permission callback configured, allow by default.
 	if s.options == nil || s.options.CanUseTool == nil {
 		return map[string]any{
 			"behavior":     "allow",
-			"updatedInput": make(map[string]any),
+			"updatedInput": updatedInput,
 		}, nil
 	}
 
@@ -762,7 +767,10 @@ func (s *Session) HandleCanUseTool(
 	case *permission.ResultAllow:
 		updatedInput := d.UpdatedInput
 		if updatedInput == nil {
-			updatedInput = make(map[string]any)
+			updatedInput = input
+			if updatedInput == nil {
+				updatedInput = make(map[string]any)
+			}
 		}
 
 		result := map[string]any{

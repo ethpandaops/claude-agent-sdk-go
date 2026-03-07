@@ -367,6 +367,7 @@ func (c *Client) readLoop(ctx context.Context) error {
 
 	// Use controller's filtered message channel (controller is the sole reader from transport)
 	rawMessages := c.controller.Messages()
+	structuredOutputTracker := message.NewStructuredOutputTracker()
 
 	for {
 		select {
@@ -385,7 +386,6 @@ func (c *Client) readLoop(ctx context.Context) error {
 				return nil
 			}
 
-			// Control messages are already filtered by the controller
 			parsed, err := message.Parse(c.log, msg)
 			if stderrors.Is(err, errors.ErrUnknownMessageType) {
 				continue
@@ -396,6 +396,13 @@ func (c *Client) readLoop(ctx context.Context) error {
 				c.setFatalError(fmt.Errorf("parse message: %w", err))
 
 				return fmt.Errorf("parse message: %w", err)
+			}
+
+			// Only cache tool output from messages that parsed successfully.
+			structuredOutputTracker.ObserveRaw(msg)
+
+			if result, ok := parsed.(*message.ResultMessage); ok {
+				structuredOutputTracker.PopulateResult(result)
 			}
 
 			select {

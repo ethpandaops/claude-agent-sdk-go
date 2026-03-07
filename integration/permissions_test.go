@@ -167,6 +167,101 @@ func TestToolPermissions_ModifyInput(t *testing.T) {
 	require.Contains(t, string(data), "modified", "File content should reflect updated input")
 }
 
+// TestToolPermissions_ClientInteractive tests CanUseTool through the interactive Client API.
+func TestToolPermissions_ClientInteractive(t *testing.T) {
+	t.Setenv("CLAUDE_CODE_STREAM_CLOSE_TIMEOUT", "5")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
+	defer cancel()
+
+	tmpDir := t.TempDir()
+	targetFile := filepath.Join(tmpDir, "client_canuse.txt")
+	callbackCalled := false
+
+	client := claudesdk.NewClient()
+	defer client.Close()
+
+	err := client.Start(ctx,
+		claudesdk.WithModel("claude-haiku-4-5"),
+		claudesdk.WithCwd(tmpDir),
+		claudesdk.WithPermissionMode("default"),
+		claudesdk.WithMaxTurns(3),
+		claudesdk.WithCanUseTool(func(
+			_ context.Context,
+			toolName string,
+			_ map[string]any,
+			_ *claudesdk.ToolPermissionContext,
+		) (claudesdk.PermissionResult, error) {
+			callbackCalled = true
+			t.Logf("Interactive client tool permission check: %s", toolName)
+
+			return &claudesdk.PermissionResultAllow{
+				Behavior: "allow",
+			}, nil
+		}),
+	)
+	if err != nil {
+		skipIfCLINotInstalled(t, err)
+		t.Fatalf("Client start failed: %v", err)
+	}
+
+	err = client.Query(ctx, "Use Bash to create a file named client_canuse.txt in the current directory.")
+	require.NoError(t, err)
+
+	for msg, recvErr := range client.ReceiveResponse(ctx) {
+		require.NoError(t, recvErr)
+
+		switch m := msg.(type) {
+		case *claudesdk.AssistantMessage:
+			for _, block := range m.Content {
+				switch b := block.(type) {
+				case *claudesdk.TextBlock:
+					t.Logf("assistant text: %s", b.Text)
+				case *claudesdk.ToolUseBlock:
+					t.Logf("assistant tool use: %s %#v", b.Name, b.Input)
+				default:
+					t.Logf("assistant block: %T", b)
+				}
+			}
+		case *claudesdk.UserMessage:
+			if m.Content.IsString() {
+				t.Logf("user content: %s", m.Content.String())
+				continue
+			}
+
+			for _, block := range m.Content.Blocks() {
+				if toolResult, ok := block.(*claudesdk.ToolResultBlock); ok {
+					var parts []string
+					for _, resultBlock := range toolResult.Content {
+						if textBlock, ok := resultBlock.(*claudesdk.TextBlock); ok {
+							parts = append(parts, textBlock.Text)
+						}
+					}
+
+					t.Logf(
+						"user tool result: is_error=%v tool_use_id=%s content=%q",
+						toolResult.IsError,
+						toolResult.ToolUseID,
+						strings.Join(parts, "\n"),
+					)
+					continue
+				}
+
+				t.Logf("user block: %T %#v", block, block)
+			}
+		case *claudesdk.ResultMessage:
+			t.Logf("result: is_error=%v subtype=%s result=%v", m.IsError, m.Subtype, m.Result)
+		default:
+			t.Logf("message type: %T", msg)
+		}
+	}
+
+	data, err := os.ReadFile(targetFile)
+	require.NoError(t, err, "Interactive client should create target file")
+	require.NotNil(t, data)
+	require.True(t, callbackCalled, "Interactive client should invoke CanUseTool")
+}
+
 // TestMCPTools_PermissionEnforcement tests that disallowed_tools blocks MCP tool execution
 // and allowed_tools permits it. Split into two subtests with single-tool objectives
 // to avoid flakiness from the LLM wasting turns on conflicting goals.

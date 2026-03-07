@@ -12,6 +12,7 @@ const (
 	BlockTypeThinking   = "thinking"
 	BlockTypeToolUse    = "tool_use"
 	BlockTypeToolResult = "tool_result"
+	BlockTypeToolRef    = "tool_reference"
 )
 
 // ContentBlock represents a block of content within a message.
@@ -25,6 +26,8 @@ var (
 	_ ContentBlock = (*ThinkingBlock)(nil)
 	_ ContentBlock = (*ToolUseBlock)(nil)
 	_ ContentBlock = (*ToolResultBlock)(nil)
+	_ ContentBlock = (*ToolReferenceBlock)(nil)
+	_ ContentBlock = (*UnknownBlock)(nil)
 )
 
 // TextBlock contains plain text content.
@@ -69,6 +72,52 @@ type ToolResultBlock struct {
 
 // BlockType implements the ContentBlock interface.
 func (b *ToolResultBlock) BlockType() string { return BlockTypeToolResult }
+
+// ToolReferenceBlock points to a deferred tool selected by Claude tool search.
+//
+//nolint:tagliatelle // Claude CLI uses snake_case for JSON fields
+type ToolReferenceBlock struct {
+	Type     string `json:"type"`
+	ToolName string `json:"tool_name"`
+}
+
+// BlockType implements the ContentBlock interface.
+func (b *ToolReferenceBlock) BlockType() string { return BlockTypeToolRef }
+
+// UnknownBlock preserves unrecognized content block payloads without failing parsing.
+type UnknownBlock struct {
+	Type string         `json:"type"`
+	Raw  map[string]any `json:"raw,omitempty"`
+}
+
+// BlockType implements the ContentBlock interface.
+func (b *UnknownBlock) BlockType() string { return b.Type }
+
+// MarshalJSON preserves the original block payload for round-tripping.
+func (b *UnknownBlock) MarshalJSON() ([]byte, error) {
+	if b == nil {
+		return json.Marshal(nil)
+	}
+
+	if len(b.Raw) > 0 {
+		raw := make(map[string]any, len(b.Raw)+1)
+		for key, value := range b.Raw {
+			raw[key] = value
+		}
+
+		if _, ok := raw["type"]; !ok && b.Type != "" {
+			raw["type"] = b.Type
+		}
+
+		return json.Marshal(raw)
+	}
+
+	type wireUnknownBlock struct {
+		Type string `json:"type"`
+	}
+
+	return json.Marshal(wireUnknownBlock{Type: b.Type})
+}
 
 // UnmarshalJSON implements json.Unmarshaler for ToolResultBlock.
 // Claude CLI tool results may arrive as a plain string or structured blocks.
@@ -128,6 +177,10 @@ func UnmarshalContentBlock(data []byte) (ContentBlock, error) {
 		return nil, err
 	}
 
+	if typeHolder.Type == "" {
+		return nil, fmt.Errorf("missing or invalid 'type' field")
+	}
+
 	switch typeHolder.Type {
 	case BlockTypeText:
 		var block TextBlock
@@ -157,7 +210,22 @@ func UnmarshalContentBlock(data []byte) (ContentBlock, error) {
 		}
 
 		return &block, nil
+	case BlockTypeToolRef:
+		var block ToolReferenceBlock
+		if err := json.Unmarshal(data, &block); err != nil {
+			return nil, err
+		}
+
+		return &block, nil
 	default:
-		return nil, fmt.Errorf("unknown content block type %q", typeHolder.Type)
+		var raw map[string]any
+		if err := json.Unmarshal(data, &raw); err != nil {
+			return nil, fmt.Errorf("unknown content block type %q: %w", typeHolder.Type, err)
+		}
+
+		return &UnknownBlock{
+			Type: typeHolder.Type,
+			Raw:  raw,
+		}, nil
 	}
 }

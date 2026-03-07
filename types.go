@@ -182,6 +182,12 @@ type ToolUseBlock = message.ToolUseBlock
 // ToolResultBlock contains the result of a tool execution.
 type ToolResultBlock = message.ToolResultBlock
 
+// ToolReferenceBlock points to a deferred tool selected by Claude tool search.
+type ToolReferenceBlock = message.ToolReferenceBlock
+
+// UnknownBlock preserves unrecognized content block payloads without failing parsing.
+type UnknownBlock = message.UnknownBlock
+
 // ===== Hooks =====
 
 // HookEvent represents the type of event that triggers a hook.

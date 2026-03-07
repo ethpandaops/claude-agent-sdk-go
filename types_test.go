@@ -1,6 +1,7 @@
 package claudesdk
 
 import (
+	"encoding/json"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -135,6 +136,55 @@ func TestToolResultBlock_Creation(t *testing.T) {
 	require.Equal(t, "tool_abc123", block.ToolUseID)
 	require.False(t, block.IsError)
 	require.Len(t, block.Content, 1)
+}
+
+// TestToolReferenceBlock_Creation tests tool reference block creation.
+func TestToolReferenceBlock_Creation(t *testing.T) {
+	block := &ToolReferenceBlock{
+		Type:     "tool_reference",
+		ToolName: "mcp__wagie__search",
+	}
+
+	require.Equal(t, "tool_reference", block.Type)
+	require.Equal(t, "tool_reference", block.BlockType())
+	require.Equal(t, "mcp__wagie__search", block.ToolName)
+}
+
+// TestUnknownBlock_Creation tests unknown block passthrough creation.
+func TestUnknownBlock_Creation(t *testing.T) {
+	block := &UnknownBlock{
+		Type: "future_block",
+		Raw: map[string]any{
+			"key": "value",
+		},
+	}
+
+	require.Equal(t, "future_block", block.BlockType())
+	require.Equal(t, "value", block.Raw["key"])
+}
+
+func TestUserMessageContent_UnknownBlockRoundTripsOriginalShape(t *testing.T) {
+	content := NewUserMessageContentBlocks([]ContentBlock{
+		&UnknownBlock{
+			Type: "future_block",
+			Raw: map[string]any{
+				"type": "future_block",
+				"foo":  "bar",
+			},
+		},
+	})
+
+	encoded, err := json.Marshal(content)
+	require.NoError(t, err)
+	require.JSONEq(t, `[{"type":"future_block","foo":"bar"}]`, string(encoded))
+}
+
+func TestUserMessageContent_UnmarshalMissingTypeFails(t *testing.T) {
+	var content UserMessageContent
+
+	err := json.Unmarshal([]byte(`[{"foo":"bar"}]`), &content)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "missing or invalid")
 }
 
 // TestResultMessage_Creation tests result message creation.

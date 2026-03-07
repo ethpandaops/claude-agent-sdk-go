@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/ethpandaops/claude-agent-sdk-go/internal/config"
+	"github.com/ethpandaops/claude-agent-sdk-go/internal/message"
 	"github.com/ethpandaops/claude-agent-sdk-go/internal/userinput"
 )
 
@@ -373,4 +374,79 @@ func TestClient_ErrGroupDoesNotExitOnContextCancel(t *testing.T) {
 	// we can still close cleanly (eg.Wait() is called in Close())
 	err = client.Close()
 	require.NoError(t, err)
+}
+
+func TestClient_StructuredOutputDoesNotLeakAcrossResponses(t *testing.T) {
+	transport := newMockTransport()
+	client := New()
+
+	err := client.Start(context.Background(), &config.Options{
+		Transport: transport,
+	})
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		require.NoError(t, client.Close())
+	})
+
+	transport.messages <- map[string]any{
+		"type":       "assistant",
+		"session_id": "default",
+		"message": map[string]any{
+			"content": []any{
+				map[string]any{
+					"type":  "tool_use",
+					"name":  "StructuredOutput",
+					"input": map[string]any{"answer": "stale"},
+				},
+			},
+		},
+	}
+
+	transport.messages <- map[string]any{
+		"type":              "result",
+		"subtype":           "success",
+		"duration_ms":       1,
+		"duration_api_ms":   1,
+		"is_error":          false,
+		"num_turns":         1,
+		"session_id":        "default",
+		"structured_output": map[string]any{"answer": "fresh"},
+	}
+
+	var firstResult *message.ResultMessage
+
+	for msg, recvErr := range client.ReceiveResponse(context.Background()) {
+		require.NoError(t, recvErr)
+
+		if result, ok := msg.(*message.ResultMessage); ok {
+			firstResult = result
+		}
+	}
+
+	require.NotNil(t, firstResult)
+	require.Equal(t, map[string]any{"answer": "fresh"}, firstResult.StructuredOutput)
+
+	transport.messages <- map[string]any{
+		"type":            "result",
+		"subtype":         "success",
+		"duration_ms":     1,
+		"duration_api_ms": 1,
+		"is_error":        false,
+		"num_turns":       1,
+		"session_id":      "default",
+	}
+
+	var secondResult *message.ResultMessage
+
+	for msg, recvErr := range client.ReceiveResponse(context.Background()) {
+		require.NoError(t, recvErr)
+
+		if result, ok := msg.(*message.ResultMessage); ok {
+			secondResult = result
+		}
+	}
+
+	require.NotNil(t, secondResult)
+	require.Nil(t, secondResult.StructuredOutput, "stale structured output leaked from the previous response")
+	require.Nil(t, secondResult.Result)
 }

@@ -460,7 +460,7 @@ func (c *Controller) handleControlRequest(ctx context.Context, msg map[string]an
 	}
 
 	// Create cancellable context for the operation
-	opCtx, cancel := context.WithCancel(ctx)
+	opCtx, cancel := context.WithCancel(ctx) //nolint:gosec // G118: cancel is called in the goroutine's defer below
 
 	// Register in-flight operation for cancellation support
 	op := &inFlightOperation{

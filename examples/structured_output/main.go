@@ -9,6 +9,8 @@ import (
 	claudesdk "github.com/ethpandaops/claude-agent-sdk-go"
 )
 
+const structuredOutputModel = "claude-haiku-4-5"
+
 // Person represents a simple structured output schema.
 type Person struct {
 	Name    string   `json:"name"`
@@ -98,6 +100,7 @@ func simpleStructuredOutput() {
 
 	output, err := getStructuredOutput(ctx, claudesdk.Query(ctx,
 		"Invent a fictional person with a name, age, and exactly 3 hobbies.",
+		claudesdk.WithModel(structuredOutputModel),
 		claudesdk.WithOutputFormat(outputFormat),
 		claudesdk.WithSystemPrompt("You are a creative writer."),
 		claudesdk.WithMaxTurns(2),
@@ -159,6 +162,7 @@ func nestedStructuredOutput() {
 		"Write a brief review of '1984' by George Orwell. "+
 			"Include title, author, a rating from 1-5, and a review with "+
 			"a short summary, 2 pros, 2 cons, and target audience.",
+		claudesdk.WithModel(structuredOutputModel),
 		claudesdk.WithOutputFormat(outputFormat),
 		claudesdk.WithSystemPrompt("You are a book critic."),
 		claudesdk.WithMaxTurns(2),

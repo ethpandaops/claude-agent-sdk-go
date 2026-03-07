@@ -8,6 +8,8 @@ import (
 	"github.com/ethpandaops/claude-agent-sdk-go/internal/errors"
 )
 
+const messageTypeAssistant = "assistant"
+
 // Parse converts a raw JSON map into a typed Message.
 //
 // The logger is used to log debug information about message parsing, including
@@ -38,7 +40,7 @@ func Parse(log *slog.Logger, data map[string]any) (Message, error) {
 	switch msgType {
 	case "user":
 		msg, err = parseUserMessage(data)
-	case "assistant":
+	case messageTypeAssistant:
 		msg, err = parseAssistantMessage(data)
 	case "system":
 		msg, err = parseSystemMessage(data)
@@ -104,13 +106,17 @@ func parseUserMessage(data map[string]any) (*UserMessage, error) {
 		msg.ParentToolUseID = &parentToolUseID
 	}
 
+	if toolUseResult, ok := data["tool_use_result"].(map[string]any); ok {
+		msg.ToolUseResult = toolUseResult
+	}
+
 	return msg, nil
 }
 
 // parseAssistantMessage parses an AssistantMessage from raw JSON.
 func parseAssistantMessage(data map[string]any) (*AssistantMessage, error) {
 	msg := &AssistantMessage{
-		Type: "assistant",
+		Type: messageTypeAssistant,
 	}
 
 	// The wire format has a nested "message" field that we flatten
@@ -452,8 +458,13 @@ func parseContentBlock(data map[string]any) (ContentBlock, error) {
 		return parseToolUseBlock(data)
 	case "tool_result":
 		return parseToolResultBlock(data)
+	case "tool_reference":
+		return parseToolReferenceBlock(data)
 	default:
-		return nil, fmt.Errorf("unknown content block type %q", blockType)
+		return &UnknownBlock{
+			Type: blockType,
+			Raw:  data,
+		}, nil
 	}
 }
 
@@ -530,6 +541,19 @@ func parseToolResultBlock(data map[string]any) (*ToolResultBlock, error) {
 		}
 
 		block.Content = content
+	}
+
+	return block, nil
+}
+
+// parseToolReferenceBlock parses a ToolReferenceBlock from raw JSON.
+func parseToolReferenceBlock(data map[string]any) (*ToolReferenceBlock, error) {
+	block := &ToolReferenceBlock{
+		Type: "tool_reference",
+	}
+
+	if toolName, ok := data["tool_name"].(string); ok {
+		block.ToolName = toolName
 	}
 
 	return block, nil

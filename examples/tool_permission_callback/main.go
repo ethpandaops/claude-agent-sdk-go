@@ -22,6 +22,18 @@ type ToolUsageLog struct {
 
 var toolUsageLog []ToolUsageLog
 
+func prepareSafeOutputDir() error {
+	if err := os.RemoveAll("./safe_output"); err != nil {
+		return fmt.Errorf("remove safe output directory: %w", err)
+	}
+
+	if err := os.MkdirAll("./safe_output", 0o755); err != nil {
+		return fmt.Errorf("create safe output directory: %w", err)
+	}
+
+	return nil
+}
+
 // displayMessage standardizes message display across examples.
 func displayMessage(msg claudesdk.Message) {
 	switch m := msg.(type) {
@@ -166,6 +178,12 @@ func main() {
 	fmt.Println("3. Log tool usage")
 	fmt.Println("4. Prompt for unknown tools")
 	fmt.Println(strings.Repeat("=", 60))
+
+	if err := prepareSafeOutputDir(); err != nil {
+		fmt.Printf("Failed to prepare safe output directory: %v\n", err)
+
+		return
+	}
 
 	// Configure logging
 	logger := slog.New(slog.NewTextHandler(os.Stderr, nil))

@@ -356,5 +356,50 @@ func TestSession_HandleCanUseTool_NonAskUserQuestionUsesCanUseTool(t *testing.T)
 	require.NoError(t, err)
 	require.Equal(t, "allow", resp["behavior"])
 	require.Contains(t, resp, "updatedInput")
+	require.Equal(t, map[string]any{"command": "echo hello"}, resp["updatedInput"])
 	require.True(t, canUseToolCalled)
+}
+
+func TestSession_HandleCanUseTool_AllowWithoutInputReturnsEmptyObject(t *testing.T) {
+	log := slog.Default()
+
+	t.Run("default allow", func(t *testing.T) {
+		session := NewSession(log, nil, nil)
+
+		resp, err := session.HandleCanUseTool(context.Background(), &ControlRequest{
+			Request: map[string]any{
+				"tool_name": "TodoRead",
+			},
+		})
+
+		require.NoError(t, err)
+		require.Equal(t, "allow", resp["behavior"])
+		require.Equal(t, map[string]any{}, resp["updatedInput"])
+	})
+
+	t.Run("callback allow", func(t *testing.T) {
+		session := NewSession(log, nil, &config.Options{
+			CanUseTool: func(
+				_ context.Context,
+				toolName string,
+				input map[string]any,
+				_ *permission.Context,
+			) (permission.Result, error) {
+				require.Equal(t, "TodoRead", toolName)
+				require.Nil(t, input)
+
+				return &permission.ResultAllow{Behavior: "allow"}, nil
+			},
+		})
+
+		resp, err := session.HandleCanUseTool(context.Background(), &ControlRequest{
+			Request: map[string]any{
+				"tool_name": "TodoRead",
+			},
+		})
+
+		require.NoError(t, err)
+		require.Equal(t, "allow", resp["behavior"])
+		require.Equal(t, map[string]any{}, resp["updatedInput"])
+	})
 }
