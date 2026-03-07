@@ -18,6 +18,8 @@ import (
 	"github.com/ethpandaops/claude-agent-sdk-go/internal/config"
 )
 
+const controlRequestType = "control_request"
+
 func isExpectedQueryError(err error) bool {
 	if err == nil {
 		return true
@@ -784,7 +786,7 @@ func (f *failingTransport) SendMessage(_ context.Context, data []byte) error {
 	// Parse the message to check if it's a control_request that needs a response.
 	var msg map[string]any
 	if err := json.Unmarshal(data, &msg); err == nil {
-		if msgType, ok := msg["type"].(string); ok && msgType == "control_request" {
+		if msgType, ok := msg["type"].(string); ok && msgType == controlRequestType {
 			if requestID, ok := msg["request_id"].(string); ok {
 				// Send a success response asynchronously.
 				go func() {
@@ -892,7 +894,7 @@ func (s *scriptedTransport) SendMessage(_ context.Context, data []byte) error {
 	}
 
 	msgType, _ := msg["type"].(string)
-	if msgType != "control_request" {
+	if msgType != controlRequestType {
 		s.releaseScript()
 
 		return nil
@@ -981,6 +983,138 @@ func (s *scriptedTransport) releaseScript() {
 	}
 }
 
+type stickyResultTransport struct {
+	mu       sync.Mutex
+	msgChan  chan map[string]any
+	errChan  chan error
+	ready    chan struct{}
+	msg      map[string]any
+	started  bool
+	closed   bool
+	closedCh chan struct{}
+}
+
+func newStickyResultTransport(msg map[string]any) *stickyResultTransport {
+	return &stickyResultTransport{
+		msgChan:  make(chan map[string]any, 2),
+		errChan:  make(chan error, 1),
+		ready:    make(chan struct{}),
+		msg:      msg,
+		closedCh: make(chan struct{}),
+	}
+}
+
+func (s *stickyResultTransport) Start(_ context.Context) error {
+	s.mu.Lock()
+	if s.started {
+		s.mu.Unlock()
+
+		return nil
+	}
+
+	s.started = true
+	msg := s.msg
+	s.mu.Unlock()
+
+	go func() {
+		<-s.ready
+
+		s.msgChan <- msg
+	}()
+
+	return nil
+}
+
+func (s *stickyResultTransport) ReadMessages(_ context.Context) (<-chan map[string]any, <-chan error) {
+	return s.msgChan, s.errChan
+}
+
+func (s *stickyResultTransport) SendMessage(_ context.Context, data []byte) error {
+	var msg map[string]any
+	if err := json.Unmarshal(data, &msg); err != nil {
+		return nil
+	}
+
+	msgType, _ := msg["type"].(string)
+	if msgType != controlRequestType {
+		s.release()
+
+		return nil
+	}
+
+	requestID, _ := msg["request_id"].(string)
+	request, _ := msg["request"].(map[string]any)
+	subtype, _ := request["subtype"].(string)
+
+	payload := map[string]any{}
+	if subtype == "initialize" {
+		payload = map[string]any{
+			"protocol_version": "1.0",
+			"server_info": map[string]any{
+				"name":    "test-server",
+				"version": "1.0.0",
+			},
+		}
+	}
+
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if s.closed {
+		return nil
+	}
+
+	s.msgChan <- map[string]any{
+		"type": "control_response",
+		"response": map[string]any{
+			"request_id": requestID,
+			"subtype":    "success",
+			"response":   payload,
+		},
+	}
+
+	return nil
+}
+
+func (s *stickyResultTransport) Close() error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if s.closed {
+		return nil
+	}
+
+	s.closed = true
+	close(s.msgChan)
+	close(s.errChan)
+	close(s.closedCh)
+
+	return nil
+}
+
+func (s *stickyResultTransport) IsReady() bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	return s.started && !s.closed
+}
+
+func (s *stickyResultTransport) EndInput() error {
+	s.release()
+
+	return nil
+}
+
+func (s *stickyResultTransport) release() {
+	select {
+	case <-s.ready:
+	default:
+		close(s.ready)
+	}
+}
+
+var _ config.Transport = (*stickyResultTransport)(nil)
+
 func TestQuery_MalformedAssistantStructuredOutputDoesNotLeak(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -1035,6 +1169,63 @@ func TestQuery_MalformedAssistantStructuredOutputDoesNotLeak(t *testing.T) {
 	require.NotNil(t, result)
 	require.Nil(t, result.StructuredOutput, "malformed assistant message should not populate result structured output")
 	require.Nil(t, result.Result, "malformed assistant message should not synthesize result text")
+}
+
+func TestQuery_ReturnsImmediatelyAfterResultAndClosesTransport(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	resultText := "final answer before transport EOF"
+	transport := newStickyResultTransport(map[string]any{
+		"type":            "result",
+		"subtype":         "success",
+		"duration_ms":     1,
+		"duration_api_ms": 1,
+		"is_error":        false,
+		"num_turns":       1,
+		"session_id":      "session-1",
+		"result":          resultText,
+	})
+
+	resultSeen := make(chan *ResultMessage, 1)
+	iteratorDone := make(chan struct{})
+
+	go func() {
+		defer close(iteratorDone)
+
+		for msg, err := range Query(ctx, "test", WithTransport(transport)) {
+			if err != nil {
+				t.Errorf("unexpected error: %v", err)
+
+				return
+			}
+
+			if result, ok := msg.(*ResultMessage); ok {
+				resultSeen <- result
+			}
+		}
+	}()
+
+	select {
+	case result := <-resultSeen:
+		require.NotNil(t, result)
+		require.NotNil(t, result.Result)
+		require.Equal(t, resultText, *result.Result)
+	case <-time.After(2 * time.Second):
+		t.Fatal("timed out waiting for ResultMessage")
+	}
+
+	select {
+	case <-iteratorDone:
+	case <-time.After(2 * time.Second):
+		t.Fatal("timed out waiting for Query iterator to stop after ResultMessage")
+	}
+
+	select {
+	case <-transport.closedCh:
+	case <-time.After(2 * time.Second):
+		t.Fatal("timed out waiting for Query to close the transport after ResultMessage")
+	}
 }
 
 func TestQueryStream_MalformedAssistantStructuredOutputDoesNotLeak(t *testing.T) {
@@ -1095,6 +1286,71 @@ func TestQueryStream_MalformedAssistantStructuredOutputDoesNotLeak(t *testing.T)
 	require.NotNil(t, result)
 	require.Nil(t, result.StructuredOutput, "malformed assistant message should not populate result structured output")
 	require.Nil(t, result.Result, "malformed assistant message should not synthesize result text")
+}
+
+func TestQueryStream_ReturnsImmediatelyAfterResultAndClosesTransport(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	resultText := "streaming final answer before transport EOF"
+	transport := newStickyResultTransport(map[string]any{
+		"type":            "result",
+		"subtype":         "success",
+		"duration_ms":     1,
+		"duration_api_ms": 1,
+		"is_error":        false,
+		"num_turns":       1,
+		"session_id":      "session-1",
+		"result":          resultText,
+	})
+
+	messages := MessagesFromSlice([]StreamingMessage{
+		NewUserMessage("test"),
+	})
+
+	resultSeen := make(chan *ResultMessage, 1)
+	iteratorDone := make(chan struct{})
+
+	go func() {
+		defer close(iteratorDone)
+
+		for msg, err := range QueryStream(
+			ctx,
+			messages,
+			WithTransport(transport),
+		) {
+			if err != nil {
+				t.Errorf("unexpected error: %v", err)
+
+				return
+			}
+
+			if result, ok := msg.(*ResultMessage); ok {
+				resultSeen <- result
+			}
+		}
+	}()
+
+	select {
+	case result := <-resultSeen:
+		require.NotNil(t, result)
+		require.NotNil(t, result.Result)
+		require.Equal(t, resultText, *result.Result)
+	case <-time.After(2 * time.Second):
+		t.Fatal("timed out waiting for ResultMessage")
+	}
+
+	select {
+	case <-iteratorDone:
+	case <-time.After(2 * time.Second):
+		t.Fatal("timed out waiting for QueryStream iterator to stop after ResultMessage")
+	}
+
+	select {
+	case <-transport.closedCh:
+	case <-time.After(2 * time.Second):
+		t.Fatal("timed out waiting for QueryStream to close the transport after ResultMessage")
+	}
 }
 
 // TestQueryStream_StreamInputError_Propagated verifies that errors from the
