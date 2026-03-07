@@ -208,7 +208,7 @@ func exampleGracefulShutdown() {
 	select {
 	case <-hookStarted:
 		fmt.Println("[MAIN] Hook is running, initiating graceful shutdown...")
-	case <-time.After(5 * time.Second):
+	case <-time.After(15 * time.Second):
 		fmt.Println("[MAIN] Timeout waiting for hook to start")
 
 		return

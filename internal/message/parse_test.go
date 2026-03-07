@@ -231,9 +231,133 @@ func TestParseUnknownContentBlockType(t *testing.T) {
 	}
 
 	msg, err := Parse(logger, data)
-	require.Error(t, err)
-	require.Nil(t, msg)
-	require.Contains(t, err.Error(), `unknown content block type "some_new_block_type"`)
+	require.NoError(t, err)
+
+	assistant, ok := msg.(*AssistantMessage)
+	require.True(t, ok)
+	require.Len(t, assistant.Content, 2)
+
+	unknown, ok := assistant.Content[0].(*UnknownBlock)
+	require.True(t, ok)
+	require.Equal(t, "some_new_block_type", unknown.Type)
+	require.Equal(t, "fallback text content", unknown.Raw["text"])
+}
+
+func TestParseAssistantMessage_LiveThinkingBlock(t *testing.T) {
+	t.Parallel()
+
+	logger := slog.Default()
+
+	msg, err := Parse(logger, map[string]any{
+		"type": "assistant",
+		"message": map[string]any{
+			"content": []any{
+				map[string]any{
+					"type":      "thinking",
+					"thinking":  "The user wants structured output for a simple math question.",
+					"signature": "sig_live_cli",
+				},
+			},
+			"model": "claude-sonnet-4-6",
+		},
+	})
+	require.NoError(t, err)
+
+	assistant, ok := msg.(*AssistantMessage)
+	require.True(t, ok)
+	require.Len(t, assistant.Content, 1)
+
+	thinking, ok := assistant.Content[0].(*ThinkingBlock)
+	require.True(t, ok)
+	require.Equal(t, "The user wants structured output for a simple math question.", thinking.Thinking)
+	require.Equal(t, "sig_live_cli", thinking.Signature)
+}
+
+func TestParseUserMessage_ToolReferenceBlock(t *testing.T) {
+	t.Parallel()
+
+	msg, err := parseUserMessage(map[string]any{
+		"type": "user",
+		"message": map[string]any{
+			"role": "user",
+			"content": []any{
+				map[string]any{
+					"type":        "tool_result",
+					"tool_use_id": "toolu_123",
+					"content": []any{
+						map[string]any{
+							"type":      "tool_reference",
+							"tool_name": "TaskOutput",
+						},
+					},
+				},
+			},
+		},
+	})
+	require.NoError(t, err)
+
+	blocks := msg.Content.Blocks()
+	require.Len(t, blocks, 1)
+
+	tr, ok := blocks[0].(*ToolResultBlock)
+	require.True(t, ok)
+	require.Len(t, tr.Content, 1)
+
+	ref, ok := tr.Content[0].(*ToolReferenceBlock)
+	require.True(t, ok)
+	require.Equal(t, "TaskOutput", ref.ToolName)
+}
+
+func TestParseUserMessage_LiveAgentToolResult(t *testing.T) {
+	t.Parallel()
+
+	msg, err := parseUserMessage(map[string]any{
+		"type": "user",
+		"message": map[string]any{
+			"role": "user",
+			"content": []any{
+				map[string]any{
+					"type":        "tool_result",
+					"tool_use_id": "toolu_agent",
+					"content": []any{
+						map[string]any{
+							"type": "text",
+							"text": "/tmp/tmp.ATcDR5f0H5",
+						},
+						map[string]any{
+							"type": "text",
+							"text": "agentId: adde1ae7843ebe607",
+						},
+					},
+				},
+			},
+		},
+		"tool_use_result": map[string]any{
+			"status":  "completed",
+			"agentId": "adde1ae7843ebe607",
+			"content": []any{
+				map[string]any{
+					"type": "text",
+					"text": "/tmp/tmp.ATcDR5f0H5",
+				},
+			},
+		},
+	})
+	require.NoError(t, err)
+
+	blocks := msg.Content.Blocks()
+	require.Len(t, blocks, 1)
+
+	tr, ok := blocks[0].(*ToolResultBlock)
+	require.True(t, ok)
+	require.Len(t, tr.Content, 2)
+
+	firstText, ok := tr.Content[0].(*TextBlock)
+	require.True(t, ok)
+	require.Equal(t, "/tmp/tmp.ATcDR5f0H5", firstText.Text)
+
+	require.Equal(t, "completed", msg.ToolUseResult["status"])
+	require.Equal(t, "adde1ae7843ebe607", msg.ToolUseResult["agentId"])
 }
 
 func TestUserMessageContent_UnmarshalString(t *testing.T) {
@@ -342,4 +466,81 @@ func TestParseResultMessageStopReason(t *testing.T) {
 	require.True(t, ok)
 	require.NotNil(t, result.StopReason)
 	require.Equal(t, "end_turn", *result.StopReason)
+}
+
+func TestParseResultMessageStructuredOutput(t *testing.T) {
+	t.Parallel()
+
+	logger := slog.Default()
+
+	msg, err := Parse(logger, map[string]any{
+		"type":            "result",
+		"subtype":         "success",
+		"duration_ms":     10,
+		"duration_api_ms": 5,
+		"is_error":        false,
+		"num_turns":       1,
+		"session_id":      "session-1",
+		"result":          "2 + 2 = **4**",
+		"structured_output": map[string]any{
+			"answer":     "4",
+			"confidence": 1.0,
+		},
+	})
+	require.NoError(t, err)
+
+	result, ok := msg.(*ResultMessage)
+	require.True(t, ok)
+	require.Equal(t, "2 + 2 = **4**", *result.Result)
+	require.Equal(t, map[string]any{"answer": "4", "confidence": 1.0}, result.StructuredOutput)
+}
+
+func TestParseSystemInitMessage(t *testing.T) {
+	t.Parallel()
+
+	logger := slog.Default()
+
+	msg, err := Parse(logger, map[string]any{
+		"type":       "system",
+		"subtype":    "init",
+		"session_id": "session-1",
+		"model":      "claude-sonnet-4-6",
+		"tools":      []any{"Read", "Write", "StructuredOutput"},
+	})
+	require.NoError(t, err)
+
+	system, ok := msg.(*SystemMessage)
+	require.True(t, ok)
+	require.Equal(t, "init", system.Subtype)
+	require.Equal(t, "session-1", system.Data["session_id"])
+}
+
+func TestParseStreamEvent_LiveDeltas(t *testing.T) {
+	t.Parallel()
+
+	logger := slog.Default()
+
+	msg, err := Parse(logger, map[string]any{
+		"type":       "stream_event",
+		"uuid":       "evt-1",
+		"session_id": "session-1",
+		"event": map[string]any{
+			"type":  "content_block_delta",
+			"index": 1,
+			"delta": map[string]any{
+				"type":         "input_json_delta",
+				"partial_json": "{\"answer\":",
+			},
+		},
+	})
+	require.NoError(t, err)
+
+	event, ok := msg.(*StreamEvent)
+	require.True(t, ok)
+	require.Equal(t, "content_block_delta", event.Event["type"])
+
+	delta, ok := event.Event["delta"].(map[string]any)
+	require.True(t, ok)
+	require.Equal(t, "input_json_delta", delta["type"])
+	require.Equal(t, "{\"answer\":", delta["partial_json"])
 }

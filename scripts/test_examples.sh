@@ -199,6 +199,7 @@ example_args() {
 run_example() {
     local name="$1"
     local logfile="$2"
+    local run_rc=0
 
     # Run from the repo root so examples can find go.mod, .claude/, etc.
     case "$name" in
@@ -206,6 +207,27 @@ run_example() {
             # Has its own go.mod — run from within its directory.
             (cd "$EXAMPLES_DIR/custom_logger" && timeout "$TIMEOUT" go run .) \
                 > "$logfile" 2>&1
+            ;;
+        sessions|tool_permission_callback)
+            # These examples depend on current-directory Claude state or write files
+            # into the working tree. Run them in an isolated copy of the repo so the
+            # example behavior stays unchanged while the test remains deterministic.
+            local tmp_repo
+            tmp_repo="$(mktemp -d)"
+
+            if command -v rsync >/dev/null 2>&1; then
+                rsync -a --exclude .git --exclude safe_output "$REPO_ROOT"/ "$tmp_repo"/ >/dev/null
+            else
+                cp -a "$REPO_ROOT"/. "$tmp_repo"/
+                rm -rf "$tmp_repo/.git" "$tmp_repo/safe_output"
+            fi
+
+            (cd "$tmp_repo" && timeout "$TIMEOUT" go run "./examples/$name") \
+                > "$logfile" 2>&1 || run_rc=$?
+
+            rm -rf "$tmp_repo"
+
+            return $run_rc
             ;;
         *)
             local args

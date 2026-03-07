@@ -828,6 +828,275 @@ func (f *failingTransport) EndInput() error {
 // Compile-time check that failingTransport implements config.Transport.
 var _ config.Transport = (*failingTransport)(nil)
 
+// scriptedTransport replays a fixed sequence of messages and automatically
+// acknowledges control requests for Query/QueryStream tests.
+type scriptedTransport struct {
+	mu        sync.Mutex
+	msgChan   chan map[string]any
+	errChan   chan error
+	ready     chan struct{}
+	script    []map[string]any
+	started   bool
+	closed    bool
+	msgClosed bool
+}
+
+func newScriptedTransport(script ...map[string]any) *scriptedTransport {
+	return &scriptedTransport{
+		msgChan: make(chan map[string]any, len(script)+10),
+		errChan: make(chan error, 1),
+		ready:   make(chan struct{}),
+		script:  script,
+	}
+}
+
+func (s *scriptedTransport) Start(_ context.Context) error {
+	s.mu.Lock()
+	if s.started {
+		s.mu.Unlock()
+
+		return nil
+	}
+
+	s.started = true
+	script := append([]map[string]any(nil), s.script...)
+	s.mu.Unlock()
+
+	go func() {
+		<-s.ready
+
+		for _, msg := range script {
+			s.msgChan <- msg
+		}
+
+		s.mu.Lock()
+		defer s.mu.Unlock()
+
+		if !s.msgClosed {
+			s.msgClosed = true
+			close(s.msgChan)
+		}
+	}()
+
+	return nil
+}
+
+func (s *scriptedTransport) ReadMessages(_ context.Context) (<-chan map[string]any, <-chan error) {
+	return s.msgChan, s.errChan
+}
+
+func (s *scriptedTransport) SendMessage(_ context.Context, data []byte) error {
+	var msg map[string]any
+	if err := json.Unmarshal(data, &msg); err != nil {
+		return nil
+	}
+
+	msgType, _ := msg["type"].(string)
+	if msgType != "control_request" {
+		s.releaseScript()
+
+		return nil
+	}
+
+	requestID, _ := msg["request_id"].(string)
+	request, _ := msg["request"].(map[string]any)
+	subtype, _ := request["subtype"].(string)
+
+	payload := map[string]any{}
+	if subtype == "initialize" {
+		payload = map[string]any{
+			"protocol_version": "1.0",
+			"server_info": map[string]any{
+				"name":    "test-server",
+				"version": "1.0.0",
+			},
+		}
+	}
+
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if s.closed {
+		return nil
+	}
+
+	s.msgChan <- map[string]any{
+		"type": "control_response",
+		"response": map[string]any{
+			"request_id": requestID,
+			"subtype":    "success",
+			"response":   payload,
+		},
+	}
+
+	return nil
+}
+
+func (s *scriptedTransport) Close() error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if s.closed {
+		return nil
+	}
+
+	s.closed = true
+	if !s.msgClosed {
+		s.msgClosed = true
+		close(s.msgChan)
+	}
+
+	close(s.errChan)
+
+	return nil
+}
+
+func (s *scriptedTransport) IsReady() bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	return s.started && !s.closed
+}
+
+func (s *scriptedTransport) EndInput() error {
+	s.releaseScript()
+
+	return nil
+}
+
+var _ config.Transport = (*scriptedTransport)(nil)
+
+func (s *scriptedTransport) releaseScript() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if s.closed {
+		return
+	}
+
+	select {
+	case <-s.ready:
+	default:
+		close(s.ready)
+	}
+}
+
+func TestQuery_MalformedAssistantStructuredOutputDoesNotLeak(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	transport := newScriptedTransport(
+		map[string]any{
+			"type":       "assistant",
+			"session_id": "session-1",
+			"message": map[string]any{
+				"content": []any{
+					map[string]any{
+						"type":  "tool_use",
+						"name":  "StructuredOutput",
+						"input": map[string]any{"answer": "stale"},
+					},
+					map[string]any{
+						"foo": "missing type triggers parse error",
+					},
+				},
+			},
+		},
+		map[string]any{
+			"type":            "result",
+			"subtype":         "success",
+			"duration_ms":     1,
+			"duration_api_ms": 1,
+			"is_error":        false,
+			"num_turns":       1,
+			"session_id":      "session-1",
+		},
+	)
+
+	var (
+		parseErr error
+		result   *ResultMessage
+	)
+
+	for msg, err := range Query(ctx, "test", WithTransport(transport)) {
+		if err != nil {
+			parseErr = err
+
+			continue
+		}
+
+		if res, ok := msg.(*ResultMessage); ok {
+			result = res
+		}
+	}
+
+	require.Error(t, parseErr)
+	require.Contains(t, parseErr.Error(), "missing or invalid 'type' field")
+	require.NotNil(t, result)
+	require.Nil(t, result.StructuredOutput, "malformed assistant message should not populate result structured output")
+	require.Nil(t, result.Result, "malformed assistant message should not synthesize result text")
+}
+
+func TestQueryStream_MalformedAssistantStructuredOutputDoesNotLeak(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	transport := newScriptedTransport(
+		map[string]any{
+			"type":       "assistant",
+			"session_id": "session-1",
+			"message": map[string]any{
+				"content": []any{
+					map[string]any{
+						"type":  "tool_use",
+						"name":  "StructuredOutput",
+						"input": map[string]any{"answer": "stale"},
+					},
+					map[string]any{
+						"foo": "missing type triggers parse error",
+					},
+				},
+			},
+		},
+		map[string]any{
+			"type":            "result",
+			"subtype":         "success",
+			"duration_ms":     1,
+			"duration_api_ms": 1,
+			"is_error":        false,
+			"num_turns":       1,
+			"session_id":      "session-1",
+		},
+	)
+
+	messages := MessagesFromSlice([]StreamingMessage{
+		NewUserMessage("test"),
+	})
+
+	var (
+		parseErr error
+		result   *ResultMessage
+	)
+
+	for msg, err := range QueryStream(ctx, messages, WithTransport(transport)) {
+		if err != nil {
+			parseErr = err
+
+			continue
+		}
+
+		if res, ok := msg.(*ResultMessage); ok {
+			result = res
+		}
+	}
+
+	require.Error(t, parseErr)
+	require.Contains(t, parseErr.Error(), "missing or invalid 'type' field")
+	require.NotNil(t, result)
+	require.Nil(t, result.StructuredOutput, "malformed assistant message should not populate result structured output")
+	require.Nil(t, result.Result, "malformed assistant message should not synthesize result text")
+}
+
 // TestQueryStream_StreamInputError_Propagated verifies that errors from the
 // streamInputMessages goroutine are properly propagated to callers via the
 // gCtx.Done() case in the select loop.

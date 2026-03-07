@@ -183,6 +183,7 @@ func Query(
 	return func(yield func(Message, error) bool) {
 		// Apply options
 		options := applyAgentOptions(opts)
+		structuredOutputTracker := message.NewStructuredOutputTracker()
 
 		// Validate and configure options
 		if err := validateAndConfigureOptions(options); err != nil {
@@ -311,6 +312,12 @@ func Query(
 					}
 
 					continue
+				}
+
+				structuredOutputTracker.ObserveRaw(msg)
+
+				if result, ok := parsed.(*message.ResultMessage); ok {
+					structuredOutputTracker.PopulateResult(result)
 				}
 
 				// Yield parsed message
@@ -463,6 +470,7 @@ func QueryStream(
 	return func(yield func(Message, error) bool) {
 		// Apply options
 		options := applyAgentOptions(opts)
+		structuredOutputTracker := message.NewStructuredOutputTracker()
 
 		// Validate and configure options
 		if err := validateAndConfigureOptions(options); err != nil {
@@ -604,6 +612,12 @@ func QueryStream(
 					}
 
 					continue
+				}
+
+				structuredOutputTracker.ObserveRaw(msg)
+
+				if result, ok := parsed.(*message.ResultMessage); ok {
+					structuredOutputTracker.PopulateResult(result)
 				}
 
 				if hasMCPOrHooks {
